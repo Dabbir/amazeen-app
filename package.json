@@ -1,6 +1,6 @@
 {
   "name": "amazeen",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AMAZEEN \u2014 the weekly magazine of your own life.",
   "scripts": {
     "dev": "vite",

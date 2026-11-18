@@ -263,3 +263,26 @@ describe('audit regressions', () => {
     expect(window.location.pathname).toBe('/write/note');
   });
 });
+
+describe('day / night edition', () => {
+  it('switches with the toggle and the T shortcut, and the Office picker reflects it', async () => {
+    const user = userEvent.setup();
+    seed();
+    renderAt('/');
+    const toggles = await screen.findAllByRole('switch', { name: 'Night edition' });
+    expect(toggles[0]).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(toggles[0] as HTMLElement);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    for (const t of screen.getAllByRole('switch', { name: 'Night edition' })) expect(t).toHaveAttribute('aria-checked', 'true');
+
+    await user.keyboard('t');
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    await user.click(screen.getAllByRole('link', { name: 'Office' })[0] as HTMLElement);
+    const system = await screen.findByRole('radio', { name: /System/ });
+    expect(screen.getByRole('radio', { name: /Day/ })).toBeChecked();
+    await user.click(system);
+    expect(localStorage.getItem('amazeen:theme')).toBeNull();
+  });
+});

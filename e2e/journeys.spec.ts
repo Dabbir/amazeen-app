@@ -97,3 +97,26 @@ test.describe('accessibility', () => {
     }
   });
 });
+
+test.describe('accessibility · night edition', () => {
+  test.use({ colorScheme: 'dark', contextOptions: { reducedMotion: 'reduce' } });
+
+  for (const path of ['/', '/shelf', '/settings', '/write/story']) {
+    test(`screen ${path}`, async ({ page }) => {
+      await onboard(page, { sample: true });
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      await expectAccessible(page);
+    });
+  }
+
+  test('an explicit Day choice overrides a dark system and survives reload', async ({ page }) => {
+    await onboard(page);
+    await page.getByRole('switch', { name: 'Night edition' }).first().click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expectAccessible(page);
+  });
+});

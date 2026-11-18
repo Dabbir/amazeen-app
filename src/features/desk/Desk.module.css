@@ -718,8 +718,9 @@
   gap: 32px;
   align-items: center;
   padding: clamp(28px, 4vw, 56px);
-  background: var(--ink);
-  color: var(--paper);
+  /* Always ink-black, like the spine, in both editions. */
+  background: var(--spine);
+  color: var(--spine-ink);
 }
 
 .stats {

@@ -8,6 +8,8 @@ import { useStore } from '../state/store';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { Monogram } from './Logo';
+import { ThemeToggle, toggleTheme, visibleThemeSwitch } from './ThemeToggle';
+import { useTheme } from '../lib/theme';
 import styles from './AppShell.module.css';
 
 interface NavItem {
@@ -63,6 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { route, navigate } = useRouter();
   const { data, current } = useStore();
   const now = useNow();
+  const { theme } = useTheme();
   const masthead = data.magazine?.title ?? 'Amazeen';
 
   useHotkeys({
@@ -74,6 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       e.preventDefault();
       navigate(paths.write('story'));
     },
+    t: () => toggleTheme(theme, visibleThemeSwitch()),
     '/': (e) => {
       e.preventDefault();
       if (route.name === 'shelf') document.getElementById('shelf-search')?.focus();
@@ -115,6 +119,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* A faint watermark of the masthead; drawn by CSS so it stays decorative. */}
         <span className={styles.spineTitle} data-text={`${masthead} · Nº ${current.number}`} aria-hidden="true" />
 
+        <ThemeToggle orientation="vertical" className={styles.spineToggle} />
+
         <p className={styles.deadline} title={`Issue No. ${current.number} goes to press in ${timeUntil(current.weekEnd, now)}`}>
           <span className={styles.pulse} aria-hidden="true" />
           <span className={styles.deadlineValue}>{shortCountdown(current.weekEnd, now)}</span>
@@ -129,6 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           <span className={styles.topTitle}>{masthead}</span>
         </Link>
+        <ThemeToggle size="small" className={styles.topToggle} />
         <span className={styles.topMeta}>
           Nº {current.number} · {shortCountdown(current.weekEnd, now)} to press
         </span>

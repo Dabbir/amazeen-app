@@ -12,6 +12,8 @@ import { DataFormatError, MAX_IMPORT_BYTES, parseAppData } from '../../domain/st
 import type { AppData } from '../../domain/types';
 import { downloadText } from '../../lib/download';
 import { promptInstall, useInstallState } from '../../lib/install';
+import { setPreference, useTheme } from '../../lib/theme';
+import type { ThemePreference } from '../../lib/theme';
 import { isStoragePersisted, requestPersistentStorage } from '../../lib/persist';
 import { useDocumentTitle } from '../../state/hooks';
 import { useNow } from '../../state/now';
@@ -84,6 +86,46 @@ function MastheadForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+const APPEARANCE: { value: ThemePreference; label: string; note: string }[] = [
+  { value: 'system', label: 'System', note: 'Follows this device' },
+  { value: 'light', label: 'Day', note: 'Paper and ink' },
+  { value: 'dark', label: 'Night', note: 'Ink and lamplight' },
+];
+
+function AppearanceSection() {
+  const { preference, theme } = useTheme();
+  return (
+    <section className={styles.section} aria-labelledby="s-appearance">
+      <div className={styles.sectionIntro}>
+        <h2 id="s-appearance">Edition</h2>
+        <p>Day or night edition. Press T anywhere to switch.</p>
+      </div>
+      <fieldset className={styles.editions}>
+        <legend className="visually-hidden">Appearance</legend>
+        {APPEARANCE.map((option) => (
+          <label key={option.value} className={styles.edition} data-option={option.value}>
+            <input
+              type="radio"
+              name="appearance"
+              value={option.value}
+              checked={preference === option.value}
+              onChange={(e) => {
+                const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                setPreference(option.value, rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
+              }}
+            />
+            <span className={styles.editionSwatch} aria-hidden="true" />
+            <span className={styles.editionLabel}>{option.label}</span>
+            <span className={styles.editionNote}>
+              {option.value === 'system' ? `${option.note} · now ${theme === 'dark' ? 'night' : 'day'}` : option.note}
+            </span>
+          </label>
+        ))}
+      </fieldset>
+    </section>
   );
 }
 
@@ -226,6 +268,8 @@ export default function Settings() {
         <MastheadForm />
       </section>
 
+      <AppearanceSection />
+
       <section className={styles.section} aria-labelledby="s-archive">
         <div className={styles.sectionIntro}>
           <h2 id="s-archive">Archive</h2>
@@ -339,6 +383,8 @@ export default function Settings() {
           <div><dt><kbd>W</kbd></dt><dd>Write a story</dd></div>
           <div><dt><kbd>N</kbd></dt><dd>Jot a note</dd></div>
           <div><dt><kbd>/</kbd></dt><dd>Search the shelf</dd></div>
+          <div><dt><kbd>T</kbd></dt><dd>Switch day / night edition</dd></div>
+          <div><dt><kbd>G</kbd></dt><dd>Jump to any page while reading</dd></div>
           <div><dt><kbd>⌘</kbd> <kbd>↵</kbd></dt><dd>File the piece you’re writing</dd></div>
           <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Turn pages while reading</dd></div>
           <div><dt><kbd>Esc</kbd></dt><dd>Close the reader or composer</dd></div>

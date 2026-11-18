@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
+import { ThemeToggle, toggleTheme, visibleThemeSwitch } from '../../components/ThemeToggle';
+import { useTheme } from '../../lib/theme';
 import ui from '../../components/ui.module.css';
 import { formatWeekRange } from '../../domain/dates';
 import { contentsFor, layoutIssue } from '../../domain/layout';
@@ -87,6 +89,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
   const direction = turn.direction;
   const [editing, setEditing] = useState(false);
   const [jumping, setJumping] = useState(false);
+  const { theme } = useTheme();
   const swipe = useRef<{ x: number; y: number } | null>(null);
 
   useDocumentTitle(`No. ${issue.number} · ${issue.headline}`);
@@ -110,6 +113,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
     End: () => go(pages.length),
     Escape: close,
     g: () => setJumping(true),
+    t: () => toggleTheme(theme, visibleThemeSwitch()),
   });
 
   const onPointerDown = (e: PointerEvent): void => {
@@ -141,6 +145,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
           </span>
         </div>
         <div className={styles.chromeActions}>
+          <ThemeToggle size="small" />
           <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => setJumping(true)} aria-label="All pages" aria-keyshortcuts="G">
             <Icon name="book" size={16} />
             <span className={styles.hideSm}>Pages</span>

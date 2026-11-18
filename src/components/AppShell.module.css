@@ -162,6 +162,10 @@
   content: attr(data-text);
 }
 
+.spineToggle {
+  margin-bottom: 18px;
+}
+
 .deadline {
   display: grid;
   justify-items: center;
@@ -279,6 +283,10 @@
     text-overflow: ellipsis;
   }
 
+  .topToggle {
+    margin-left: auto;
+  }
+
   .topMeta {
     flex: none;
     font-family: var(--font-mono);
@@ -334,5 +342,12 @@
     color: var(--press-ink);
     border-radius: 6px 6px 0 0;
     box-shadow: 0 -10px 24px -14px rgb(212 58 36 / 0.8);
+  }
+}
+
+/* Narrow phones: the masthead and the edition switch get the room; the countdown lives on the Desk. */
+@media (max-width: 430px) {
+  .topMeta {
+    display: none;
   }
 }

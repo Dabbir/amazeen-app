@@ -2,6 +2,16 @@
 
 All notable changes to AMAZEEN. Versions follow [semver](https://semver.org).
 
+## 1.2.0 (2026-11-18)
+
+**Day and Night editions.**
+
+- **Edition switch:** an interactive switch, vertical on the spine and horizontal in the phone top bar and the reader. Day shows a sun knob on paper; Night shows a crescent moon with stars on ink.
+- **Ink-spill transition:** switching spreads the new edition outward from the switch as a growing circle (View Transitions API). It falls back to an instant switch, and stays instant with reduced motion.
+- **Choices:** System (the default, follows the OS live), Day or Night. Pick in the Office's new *Edition* section, or press `T` anywhere. The choice is remembered per device and synced across tabs.
+- **No flash of the wrong theme:** a tiny blocking `theme-init.js` applies the saved edition before first paint. It's a separate file because the strict CSP forbids inline scripts.
+- **Accessibility:** both editions pass WCAG 2.1 AA, with axe now run in Night as well. The switch is a real `role="switch"`.
+
 ## 1.1.0 (2026-11-18)
 
 A new design direction: **The Production Room**. The app now borrows the artefacts of making a magazine.
