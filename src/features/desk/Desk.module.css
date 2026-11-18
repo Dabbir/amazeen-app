@@ -390,7 +390,7 @@
 }
 
 .spread {
-  --page-w: clamp(92px, 9.5vw, 138px);
+  --page-w: clamp(108px, 9.5vw, 138px);
   position: relative;
   display: flex;
 }

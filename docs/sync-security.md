@@ -10,7 +10,7 @@ AMAZEEN is local-first. Sync is optional, and it is built so the server **cannot
    - `encKey` (AES-256-GCM): never leaves the device (stored as a non-extractable `CryptoKey` while in use).
 3. **Per-record encryption.** Each entry, and the masthead/cover settings, is encrypted separately with a fresh random 96-bit IV. The account id and record id are bound in as *authenticated data*, so the server can't swap one record's data for another's or move it between accounts.
 4. **Merging.** Records carry a change time. Newest wins per record; a live entry beats a deletion on an exact tie. Deletions are kept as *tombstones* so a device that missed one can't undo it. The same `mergeData` function serves file imports and sync.
-5. **Transport.** Same-origin HTTPS to a Cloudflare Pages Function backed by D1. Pull is incremental (server change numbers); push is a transactional batch.
+5. **Transport.** Same-origin HTTPS to a Cloudflare Worker backed by D1 (the app itself is served as static assets; only `/api/*` reaches the Worker). Pull is incremental (server change numbers); push is a transactional batch.
 
 ## What the server can and can't see
 
