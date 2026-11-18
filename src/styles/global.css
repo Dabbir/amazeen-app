@@ -1,0 +1,256 @@
+/* ─────────────────────────────────────────────────────────────
+   AMAZEEN design tokens
+   Newsprint paper, letterpress ink, one "press red" for action,
+   and seven riso inks reserved for covers.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper: #f2ede3;
+  --paper-2: #e8e1d3;
+  --paper-3: #ddd4c2;
+  --sheet: #faf7f1;
+  --ink: #1b1814;
+  --ink-2: #4b443b;
+  --ink-3: #7d7467;
+  --rule: rgb(27 24 20 / 0.9);
+  --hairline: rgb(27 24 20 / 0.16);
+  --press: #e8432e;
+  --press-ink: #fffaf3;
+  --press-soft: rgb(232 67 46 / 0.12);
+  --ok: #1d7a4c;
+  --warn: #b25d00;
+  --shadow-paper: 0 1px 0 rgb(27 24 20 / 0.06), 0 12px 30px -12px rgb(40 28 10 / 0.28), 0 30px 60px -30px rgb(40 28 10 / 0.25);
+
+  /* riso inks */
+  --riso-blue: #2f5bd3;
+  --riso-teal: #00808a;
+  --riso-violet: #6f4fb8;
+  --riso-orange: #ff6a2b;
+  --riso-yellow: #ffd60a;
+  --riso-pink: #ff4fa3;
+  --riso-green: #11a35f;
+
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-text: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.12rem);
+  --step-1: clamp(1.2rem, 1.1rem + 0.5vw, 1.45rem);
+  --step-2: clamp(1.5rem, 1.3rem + 1vw, 2.1rem);
+  --step-3: clamp(2rem, 1.6rem + 2vw, 3.2rem);
+  --step-4: clamp(2.6rem, 1.9rem + 3.6vw, 5rem);
+  --step-5: clamp(3.2rem, 2rem + 6vw, 8rem);
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1280px;
+  --radius: 4px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --topbar-h: 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #14120f;
+    --paper-2: #1d1a16;
+    --paper-3: #2a261f;
+    --sheet: #1b1814;
+    --ink: #ece5d6;
+    --ink-2: #bdb4a3;
+    --ink-3: #8b8273;
+    --rule: rgb(236 229 214 / 0.85);
+    --hairline: rgb(236 229 214 / 0.14);
+    --press: #ff5a42;
+    --press-ink: #1b0c08;
+    --press-soft: rgb(255 90 66 / 0.14);
+    --ok: #4fc58a;
+    --warn: #f2a33a;
+    --shadow-paper: 0 1px 0 rgb(0 0 0 / 0.4), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--topbar-h) + 16px);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paper grain: an SVG turbulence filter, a few hundred bytes, static. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .22 0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  body::before {
+    mix-blend-mode: screen;
+    opacity: 0.12;
+  }
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--press);
+  color: var(--press-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--press);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Shared typographic atoms */
+.kicker {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.numeral {
+  font-family: var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+kbd {
+  font-family: var(--font-ui);
+  font-size: 0.72em;
+  font-weight: 600;
+  padding: 0.1em 0.45em;
+  border: 1px solid currentColor;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+/* Page-level transitions (View Transitions API, progressive enhancement) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(root) {
+  animation-name: vt-out;
+}
+::view-transition-new(root) {
+  animation-name: vt-in;
+}
+::view-transition-group(*) {
+  animation-duration: 480ms;
+  animation-timing-function: var(--ease-out);
+}
+@keyframes vt-out {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes vt-in {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #1b1814;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body::before {
+    display: none;
+  }
+}
