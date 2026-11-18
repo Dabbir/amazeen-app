@@ -50,6 +50,7 @@ export function Onboarding() {
       entries: withSample ? sampleEntries() : [],
       tombstones: {},
       overrides: {},
+      metaUpdatedAt: new Date().toISOString(),
     });
   };
 

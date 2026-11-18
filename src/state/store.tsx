@@ -28,6 +28,8 @@ export interface Store {
   toggleStar: (id: string) => void;
   setOverride: (key: string, override: IssueOverride | null) => void;
   replaceData: (data: AppData) => void;
+  /** Apply records that arrived from another device. */
+  mergeRemote: (incoming: AppData) => void;
   markExported: () => void;
   /** Permanently remove the archive, legacy copies and drafts from this browser. */
   eraseAll: () => Promise<void>;
@@ -172,7 +174,8 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
       deleteEntry,
       toggleStar: (id) => act({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
       setOverride: (key, override) => act({ type: 'override/set', key, override, at: new Date().toISOString() }),
-      replaceData: (next) => act({ type: 'data/replace', data: next }),
+      replaceData: (next) => act({ type: 'data/replaceAll', data: next, at: new Date().toISOString() }),
+      mergeRemote: (incoming) => act({ type: 'data/mergeRemote', incoming }),
       markExported: () => act({ type: 'backup/exported', at: new Date().toISOString() }),
       eraseAll,
       readRawArchive: () => adapter.readRaw(),

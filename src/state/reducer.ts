@@ -1,3 +1,4 @@
+import { mergeData, metaStamp } from '../domain/backup';
 import type { AppData, Entry, IssueOverride, Magazine } from '../domain/types';
 
 export type Action =
@@ -8,6 +9,10 @@ export type Action =
   | { type: 'entry/toggleStar'; id: string; now: string }
   | { type: 'override/set'; key: string; override: IssueOverride | null; at: string }
   | { type: 'data/replace'; data: AppData }
+  /** The person replaced the whole archive (import, sample): whatever it drops is recorded as deleted. */
+  | { type: 'data/replaceAll'; data: AppData; at: string }
+  /** Records pulled from other devices. */
+  | { type: 'data/mergeRemote'; incoming: AppData }
   | { type: 'backup/exported'; at: string }
   | { type: 'data/reset' };
 
@@ -47,6 +52,22 @@ export function reducer(state: AppData, action: Action): AppData {
     }
     case 'data/replace':
       return action.data;
+    case 'data/replaceAll': {
+      const kept = new Set(action.data.entries.map((e) => e.id));
+      const tombstones: Record<string, string> = { ...action.data.tombstones };
+      for (const e of state.entries) if (!kept.has(e.id) && !(e.id in tombstones)) tombstones[e.id] = action.at;
+      for (const [id, at] of Object.entries(state.tombstones)) if (!kept.has(id) && !(id in tombstones)) tombstones[id] = at;
+      for (const id of kept) delete tombstones[id];
+      return { ...action.data, tombstones };
+    }
+    case 'data/mergeRemote': {
+      const merged = mergeData(state, action.incoming, { meta: 'newest' });
+      const unchanged =
+        merged.added + merged.updated + merged.removed === 0 &&
+        metaStamp(merged.data) === metaStamp(state) &&
+        Object.keys(merged.data.tombstones).length === Object.keys(state.tombstones).length;
+      return unchanged ? state : merged.data;
+    }
     case 'backup/exported':
       return { ...state, lastExportedAt: action.at };
     case 'data/reset':

@@ -48,6 +48,11 @@ export function summarize(data: AppData, weekOf: (iso: string) => string): Archi
   return { entries: data.entries.length, issues: weeks.size, first: sorted[0] ?? null, last: sorted.at(-1) ?? null };
 }
 
+/** When the masthead/cover settings last changed. Archives from before this was tracked fall back to the masthead's creation time. */
+export function metaStamp(data: Pick<AppData, 'metaUpdatedAt' | 'magazine'>): string {
+  return data.metaUpdatedAt ?? data.magazine?.createdAt ?? '';
+}
+
 export interface MergeResult {
   data: AppData;
   /** Entries that came from `incoming` and did not exist here. */
@@ -115,8 +120,8 @@ export function mergeData(current: AppData, incoming: AppData, options: MergeOpt
   for (const id of live.keys()) dead.delete(id); // a live entry supersedes any older tombstone
 
   const newest = options.meta === 'newest';
-  const takeIncomingMeta = newest && (incoming.metaUpdatedAt ?? '') > (current.metaUpdatedAt ?? '');
-  const metaUpdatedAt = takeIncomingMeta ? incoming.metaUpdatedAt : current.metaUpdatedAt;
+  const takeIncomingMeta = newest && metaStamp(incoming) > metaStamp(current);
+  const metaUpdatedAt = takeIncomingMeta ? metaStamp(incoming) || undefined : current.metaUpdatedAt;
   return {
     data: {
       ...current,
