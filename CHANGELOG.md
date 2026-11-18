@@ -2,6 +2,22 @@
 
 All notable changes to AMAZEEN. Versions follow [semver](https://semver.org).
 
+## 1.1.0 (2026-11-18)
+
+A new design direction: **The Production Room**. The app now borrows the artefacts of making a magazine.
+
+- **Spine navigation:** an ink-black magazine spine down the left edge carries the sections (set vertically), the masthead and the press deadline. Phones get index tabs.
+- **The Desk is a flatplan:** the week's issue as page thumbnails bound in spreads. Empty sections are dashed slots that open the composer, and production notes appear in proof blue.
+- **Jot line:** file a note from the desk with Enter.
+- **Galley:** this week's pieces as proof slips with day marginalia, plus a circulation band.
+- **The Shelf is a stack of spines,** thick as each week was full, with tilted spines that pull out into covers. On phones they lie flat. Search reads as a printed index with dot leaders and page references.
+- **Composer as manuscript:** an outlined kind label in the margin and a production docket on the right.
+- **Reader:** features open as two-page spreads on wide screens; a page jumper (`G`).
+- **The Office:** settings set as a masthead page with a staff box.
+- **Issue Zero:** onboarding on a dark stage.
+- **Motion:** scroll-driven reveals and a drifting issue numeral (CSS scroll timelines, with fallbacks), and new page transitions.
+- **Type:** JetBrains Mono joins Fraunces and Newsreader as the production voice.
+
 ## 1.0.0 (2026-11-18)
 
 First production release.

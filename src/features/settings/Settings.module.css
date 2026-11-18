@@ -1,43 +1,114 @@
+/* The Office: set like a magazine's masthead page. Section names sit in the left column like
+   staff-box roles; the controls sit on the right like the names. */
 .settings {
   display: grid;
-  gap: 0;
   max-width: 1040px;
+  margin: 0 auto;
 }
 
 .head {
-  padding-bottom: 16px;
-  border-bottom: 3px solid var(--ink);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding-bottom: clamp(32px, 5vw, 56px);
+  text-align: center;
+  border-bottom: 2px solid var(--rule);
+}
+
+.ornament {
+  font-size: 1.4rem;
+  color: var(--press);
+  animation: spin-in 900ms var(--ease-spring) both;
+}
+
+@keyframes spin-in {
+  from {
+    opacity: 0;
+    transform: rotate(-120deg) scale(0.4);
+  }
 }
 
 .title {
-  margin-top: 6px;
   font-size: var(--step-5);
   font-weight: 900;
-  letter-spacing: -0.055em;
   line-height: 0.85;
+  letter-spacing: -0.055em;
+  font-variation-settings: 'SOFT' 100, 'opsz' 144;
+}
+
+.title em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--press);
   font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 144;
+}
+
+.sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--step-1);
+  color: var(--ink-2);
+}
+
+/* Staff box */
+.staff {
+  margin: 24px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 8px clamp(20px, 4vw, 56px);
+}
+
+.staff div {
+  display: grid;
+  gap: 4px;
+}
+
+.staff dt {
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.staff dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 700;
 }
 
 .section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 24px clamp(24px, 5vw, 64px);
-  padding: clamp(28px, 4vw, 44px) 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  gap: 24px clamp(28px, 5vw, 72px);
+  padding: clamp(32px, 4vw, 48px) 0;
   border-bottom: 1px solid var(--hairline);
 }
 
+.sectionIntro {
+  text-align: right;
+}
+
 .sectionIntro h2 {
-  font-size: var(--step-2);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .sectionIntro p {
-  margin-top: 8px;
+  margin: 8px 0 0 auto;
+  max-width: 30ch;
+  font-family: var(--font-display);
+  font-style: italic;
   color: var(--ink-2);
-  max-width: 34ch;
 }
 
 .danger .sectionIntro h2 {
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .form {
@@ -46,10 +117,9 @@
 }
 
 .mastPreview {
-  padding: 18px 20px 14px;
+  padding: 18px 22px 14px;
   background: var(--ink);
   color: var(--paper);
-  border-radius: 4px;
   font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem);
@@ -61,6 +131,7 @@
   text-overflow: ellipsis;
   text-shadow: 3px 2px 0 var(--press);
   font-variation-settings: 'SOFT' 30, 'opsz' 144;
+  border-left: 8px solid var(--press);
 }
 
 .fields {
@@ -71,7 +142,6 @@
 
 .actions {
   display: grid;
-  border-top: 1.5px solid var(--rule);
 }
 
 .action {
@@ -80,7 +150,11 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 0;
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px dotted var(--ink-3);
+}
+
+.action:first-child {
+  padding-top: 0;
 }
 
 .action > button {
@@ -88,14 +162,62 @@
 }
 
 .action h3 {
-  font-size: 1.2rem;
-  font-weight: 650;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .action p {
   margin-top: 4px;
   color: var(--ink-2);
-  font-size: 0.95rem;
+  font-size: 0.98rem;
+}
+
+.status {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--proof);
+}
+
+.summary {
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px dashed var(--proof);
+  background: var(--proof-soft);
+}
+
+.summary div {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+}
+
+.summary dt {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.installBody {
+  align-self: center;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: grid;
+  gap: 6px;
 }
 
 .keys {
@@ -126,9 +248,26 @@
   letter-spacing: 0.2em;
 }
 
+.version {
+  padding-top: 32px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--ink-3);
+}
+
 @media (max-width: 760px) {
+  .staff {
+    grid-template-columns: repeat(2, auto);
+  }
   .section {
     grid-template-columns: 1fr;
+  }
+  .sectionIntro {
+    text-align: left;
+  }
+  .sectionIntro p {
+    margin-left: 0;
   }
   .fields,
   .keys {
@@ -138,60 +277,4 @@
     flex-direction: column;
     align-items: flex-start;
   }
-}
-
-.status {
-  display: block;
-  margin-top: 4px;
-  font-family: var(--font-ui);
-  font-size: 0.85rem;
-  color: var(--ink-3);
-}
-
-.summary {
-  margin: 0 0 16px;
-  display: grid;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--hairline);
-  border-radius: 6px;
-  background: var(--paper);
-}
-
-.summary div {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 12px;
-}
-
-.summary dt {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.summary dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.installBody {
-  align-self: center;
-}
-
-.steps {
-  margin: 0;
-  padding-left: 1.3em;
-  display: grid;
-  gap: 6px;
-}
-
-.version {
-  padding-top: 28px;
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  color: var(--ink-3);
 }

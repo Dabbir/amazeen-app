@@ -263,6 +263,9 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
       )}
 
       <form ref={formRef} className={styles.form} onSubmit={submit} noValidate aria-label={existing ? 'Edit piece' : KIND_INFO[kind].verb}>
+        <span className={styles.marginLabel} aria-hidden="true">
+          {KIND_INFO[kind].label}
+        </span>
         <div className={styles.sheet} data-kind={kind}>
           <p className={styles.sheetKicker}>
             <span>{KIND_INFO[kind].label}</span>

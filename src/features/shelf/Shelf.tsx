@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { CoverArt } from '../../components/CoverArt';
 import { Icon } from '../../components/Icon';
 import ui from '../../components/ui.module.css';
@@ -26,15 +27,35 @@ function Highlighted({ text, query }: { text: string; query: string }) {
   );
 }
 
-function groupByMonth(issues: readonly Issue[]): { label: string; issues: Issue[] }[] {
-  const groups: { label: string; issues: Issue[] }[] = [];
-  for (const issue of issues) {
-    const label = formatMonthYear(issue.weekStart);
-    const last = groups[groups.length - 1];
-    if (last && last.label === label) last.issues.push(issue);
-    else groups.push({ label, issues: [issue] });
-  }
-  return groups;
+/** Spine thickness follows the issue's size: thin weeks make thin spines. */
+function spineWidth(issue: Issue): number {
+  return Math.round(Math.min(96, 46 + issue.stats.entries * 6));
+}
+
+function Spine({ issue, masthead, open }: { issue: Issue; masthead: string; open: boolean }) {
+  const style = { '--spine-thickness': `${spineWidth(issue)}px` } as CSSProperties;
+  return (
+    <li className={styles.slot} style={style}>
+      <Link to={paths.issue(issue.key)} className={styles.spine} data-ink={issue.ink} data-open={open || undefined}>
+        <span className="visually-hidden">
+          No. {issue.number}, {formatWeekRange(issue.weekStart, issue.weekEnd)}
+          {issue.status === 'in-production' ? ' (proof)' : ''}: {issue.headline}
+        </span>
+        <span className={styles.face} aria-hidden="true">
+          <span className={styles.faceNo}>
+            Nº
+            <br />
+            {issue.number}
+          </span>
+          <span className={styles.faceTitle}>{issue.headline}</span>
+          <span className={styles.faceMast}>{masthead}</span>
+        </span>
+        <span className={styles.cover} aria-hidden="true">
+          <CoverArt issue={issue} masthead={masthead} decorative morph />
+        </span>
+      </Link>
+    </li>
+  );
 }
 
 export default function Shelf({ initialQuery }: { initialQuery: string }) {
@@ -55,7 +76,9 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
     return () => window.clearTimeout(id);
   }, [query, navigate]);
 
+  const masthead = data.magazine?.title ?? '';
   const shelved = issues.filter((i) => i.entries.length > 0 || i.status === 'in-production');
+  const latestPrinted = shelved.find((i) => i.status === 'published');
   const searching = deferredQuery.trim() !== '' || section !== null;
   // Ask for one extra result so we know whether to say "50+".
   const found = useMemo(
@@ -64,19 +87,20 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
   );
   const hits = found.slice(0, RESULT_LIMIT);
   const truncated = found.length > RESULT_LIMIT;
-  // Deep link for each hit to the exact page it's printed on; each issue is laid out at most once.
-  const hrefs = useMemo(() => {
+  // Where each hit is printed: issue and page. Each issue is laid out at most once.
+  const locations = useMemo(() => {
     const pagesByIssue = new Map<string, ReturnType<typeof layoutIssue>>();
-    const out = new Map<string, string>();
+    const out = new Map<string, { href: string; page: number | null }>();
     for (const hit of found) {
       const issue = findIssue(hit.issueKey);
       if (!issue) {
-        out.set(hit.entry.id, paths.edit(hit.entry.id));
+        out.set(hit.entry.id, { href: paths.edit(hit.entry.id), page: null });
         continue;
       }
       const pages = pagesByIssue.get(issue.key) ?? layoutIssue(issue);
       pagesByIssue.set(issue.key, pages);
-      out.set(hit.entry.id, paths.issue(issue.key, pageOf(pages, hit.entry.id)));
+      const page = pageOf(pages, hit.entry.id);
+      out.set(hit.entry.id, { href: paths.issue(issue.key, page), page });
     }
     return out;
   }, [found, findIssue]);
@@ -87,28 +111,39 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
   return (
     <div className={styles.shelf}>
       <header className={styles.head}>
-        <div>
-          <p className="kicker">The archive</p>
-          <h1 className={styles.title}>The Shelf</h1>
-        </div>
-        <p className={styles.summary}>
-          {printed} {printed === 1 ? 'issue' : 'issues'} printed · {totalWords(data.entries).toLocaleString()} words
-          {first && ` · since ${formatMonthYear(new Date(first))}`}
-        </p>
+        <h1 className={styles.title}>
+          The <em>Shelf</em>
+        </h1>
+        <dl className={styles.facts}>
+          <div>
+            <dt>Issues printed</dt>
+            <dd>{printed}</dd>
+          </div>
+          <div>
+            <dt>Words</dt>
+            <dd>{totalWords(data.entries).toLocaleString()}</dd>
+          </div>
+          {first && (
+            <div>
+              <dt>Since</dt>
+              <dd>{formatMonthYear(new Date(first))}</dd>
+            </div>
+          )}
+        </dl>
       </header>
 
       <div className={styles.tools} role="search">
         <label className={styles.search}>
-          <Icon name="search" size={20} />
-          <span className="visually-hidden">Search every issue</span>
+          <span className={styles.searchLabel}>Index</span>
           <input
             id="shelf-search"
             type="search"
             value={query}
-            placeholder="Search every issue…"
+            placeholder="look something up…"
             autoComplete="off"
             spellCheck={false}
             maxLength={120}
+            aria-label="Search every issue"
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && query) {
@@ -119,7 +154,7 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
           />
           {query && (
             <button type="button" className={ui.iconBtn} aria-label="Clear search" onClick={() => setQuery('')}>
-              <Icon name="close" size={16} />
+              <Icon name="close" size={18} />
             </button>
           )}
         </label>
@@ -136,43 +171,43 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
       </div>
 
       {searching ? (
-        <section aria-live="polite" aria-label="Search results">
+        <section className={styles.index} aria-live="polite" aria-label="Search results">
           <p className={styles.resultCount}>
-            {hits.length === 0
-              ? 'No matches'
-              : `${hits.length}${truncated ? '+' : ''} ${hits.length === 1 ? 'piece' : 'pieces'}`}
+            {hits.length === 0 ? 'No matches' : `${hits.length}${truncated ? '+' : ''} ${hits.length === 1 ? 'entry' : 'entries'}`}
             {deferredQuery.trim() && <> for “{deferredQuery.trim()}”</>}
             {section && <> in {SECTION_INFO[section].label}</>}
           </p>
           {hits.length === 0 ? (
             <div className={styles.empty}>
               <p className={styles.emptyTitle}>Nothing on file.</p>
-              <p className={styles.emptyText}>Try a different word, or clear the section filter. Search looks through every headline, note, quote and list.</p>
+              <p className={styles.emptyText}>Try a different word, or clear the section filter. The index covers every headline, note, quote and list.</p>
             </div>
           ) : (
-            <ol className={styles.results}>
+            <ol className={styles.entries}>
               {hits.map((hit) => {
                 const issue = findIssue(hit.issueKey);
+                const loc = locations.get(hit.entry.id);
                 return (
                   <li key={hit.entry.id}>
-                    <Link to={hrefs.get(hit.entry.id) ?? paths.edit(hit.entry.id)} className={styles.result}>
-                      <span className={styles.resultIssue}>
-                        <span className={styles.resultNo}>No. {issue?.number ?? '—'}</span>
-                        <span>{formatDayMonth(new Date(hit.entry.createdAt))}</span>
-                      </span>
-                      <span className={styles.resultBody}>
-                        <span className={styles.resultKind}>
-                          {KIND_INFO[hit.entry.kind].label} · {SECTION_INFO[hit.entry.section].label}
-                        </span>
-                        <span className={styles.resultTitle}>
+                    <Link to={loc?.href ?? paths.edit(hit.entry.id)} className={styles.entry}>
+                      <span className={styles.entryLine}>
+                        <span className={styles.entryTitle}>
                           <Highlighted text={entryHeadline(hit.entry)} query={deferredQuery} />
                         </span>
-                        {hit.entry.kind === 'story' || hit.entry.kind === 'list' ? (
-                          <span className={styles.resultSnippet}>
-                            <Highlighted text={hit.snippet} query={deferredQuery} />
-                          </span>
-                        ) : null}
+                        <span className={styles.leader} aria-hidden="true" />
+                        <span className={styles.entryRef}>
+                          No.&nbsp;{issue?.number ?? '—'}
+                          {loc?.page ? `, p. ${loc.page}` : ''}
+                        </span>
                       </span>
+                      <span className={styles.entryMeta}>
+                        {KIND_INFO[hit.entry.kind].label} · {SECTION_INFO[hit.entry.section].label} · {formatDayMonth(new Date(hit.entry.createdAt))}
+                      </span>
+                      {(hit.entry.kind === 'story' || hit.entry.kind === 'list') && (
+                        <span className={styles.entrySnippet}>
+                          <Highlighted text={hit.snippet} query={deferredQuery} />
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -183,39 +218,23 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
       ) : data.entries.length === 0 ? (
         <div className={styles.empty}>
           <p className={styles.emptyTitle}>An empty shelf, for now.</p>
-          <p className={styles.emptyText}>Every Sunday at midnight, the week’s issue lands here. File your first piece and watch the proof take shape on the desk.</p>
+          <p className={styles.emptyText}>Every Sunday at midnight, the week’s issue lands here, spine out. File your first piece and watch it take shape on the desk.</p>
           <Link to={paths.write('note')} className={`${ui.btn} ${ui.dark}`}>
             File your first piece
           </Link>
         </div>
       ) : (
-        <div className={styles.months}>
-          {groupByMonth(shelved).map((group) => (
-            <section key={group.label} className={styles.month} aria-label={group.label}>
-              <h2 className={styles.monthTitle}>{group.label}</h2>
-              <ul className={styles.grid}>
-                {group.issues.map((issue, i) => (
-                  <li key={issue.key} style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }} className={styles.item}>
-                    <Link
-                      to={paths.issue(issue.key)}
-                      className={styles.issueLink}
-                    >
-                      <CoverArt issue={issue} masthead={data.magazine?.title ?? ''} decorative morph />
-                      <span className={styles.caption}>
-                        <span className={styles.captionNo}>
-                          No. {issue.number}
-                          {issue.status === 'in-production' && <span className={styles.proof}>Proof</span>}
-                        </span>
-                        <span className={styles.captionDate}>{formatWeekRange(issue.weekStart, issue.weekEnd)}</span>
-                        <span className="visually-hidden">: {issue.headline}</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <section aria-label="Issues">
+          <p className={styles.hint} aria-hidden="true">
+            Spines are as thick as the week was full. Hover or focus to pull an issue out.
+          </p>
+          <ul className={styles.stack}>
+            {shelved.map((issue) => (
+              <Spine key={issue.key} issue={issue} masthead={masthead} open={issue === latestPrinted} />
+            ))}
+          </ul>
+          <div className={styles.plank} aria-hidden="true" />
+        </section>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import { SECTION_INFO } from './catalog';
 import { coverLineFor } from './issues';
 import { entryWords, readingMinutes } from './text';
-import type { Entry, Issue, ListEntry, NoteEntry, QuoteEntry, StoryEntry } from './types';
+import type { Entry, EntryKind, Issue, ListEntry, NoteEntry, QuoteEntry, StoryEntry } from './types';
 
 /** A single page (or spread) of a laid-out issue. */
 export type Page =
@@ -134,4 +134,36 @@ export function pageOf(pages: readonly Page[], entryId: string): number {
     }
   });
   return index < 0 ? 1 : index + 1;
+}
+
+/** A slot on the issue's flatplan: either a laid-out page or a planned page still awaiting copy. */
+export type FlatplanSlot =
+  | { status: 'set'; page: Page; number: number }
+  | { status: 'planned'; kind: 'contents' | 'feature' | 'dispatches' | 'overheard' | 'numbers'; write: EntryKind | null };
+
+/**
+ * The issue as an editor's flatplan: every laid-out page in order, plus placeholders for the
+ * sections a complete issue has (a feature, dispatches, an overheard page) that are still empty.
+ */
+export function flatplan(pages: readonly Page[]): FlatplanSlot[] {
+  const set = pages.map((page, i): FlatplanSlot => ({ status: 'set', page, number: i + 1 }));
+  const has = (kind: Page['kind']) => pages.some((p) => p.kind === kind);
+  const planned = (kind: Extract<FlatplanSlot, { status: 'planned' }>['kind'], write: EntryKind | null): FlatplanSlot => ({ status: 'planned', kind, write });
+
+  const cover = set.slice(0, 1);
+  const back = set.slice(-1);
+  const middle = set.slice(1, -1);
+  const out: FlatplanSlot[] = [...cover];
+  if (!has('contents')) out.push(planned('contents', null));
+  out.push(...middle.filter((s) => s.status === 'set' && s.page.kind === 'contents'));
+  const features = middle.filter((s) => s.status === 'set' && s.page.kind === 'feature');
+  out.push(...(features.length ? features : [planned('feature', 'story')]));
+  const dispatches = middle.filter((s) => s.status === 'set' && s.page.kind === 'dispatches');
+  out.push(...(dispatches.length ? dispatches : [planned('dispatches', 'note')]));
+  const overheard = middle.filter((s) => s.status === 'set' && s.page.kind === 'overheard');
+  out.push(...(overheard.length ? overheard : [planned('overheard', 'quote')]));
+  if (!has('numbers')) out.push(planned('numbers', null));
+  out.push(...middle.filter((s) => s.status === 'set' && s.page.kind === 'numbers'));
+  out.push(...back);
+  return out;
 }

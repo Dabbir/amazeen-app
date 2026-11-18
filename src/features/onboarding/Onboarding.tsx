@@ -150,7 +150,10 @@ export function Onboarding() {
 
         <aside className={styles.preview} aria-label="Cover preview">
           {preview && <CoverArt issue={preview} masthead={shownTitle} decorative />}
-          <p className={styles.caption}>Your masthead, on every cover.</p>
+          <span className={styles.zero} aria-hidden="true">
+            <span>Nº</span>0
+          </span>
+          <p className={styles.caption}>Issue zero. Your masthead, on every cover from now on.</p>
         </aside>
       </div>
     </main>

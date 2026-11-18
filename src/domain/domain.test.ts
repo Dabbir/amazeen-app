@@ -3,7 +3,7 @@ import { daysSoFarThisWeek, endOfWeek, filingDate, formatWeekRange, isoWeek, sta
 import { createEntry, emptyDraft, isDraftBlank, normalizeDraft, parseEntry, updateEntry, validateDraft } from './entries';
 import { backupStatus, mergeData, summarize } from './backup';
 import { compileIssues, pickCoverStory, pressCheck, weeklyStreak } from './issues';
-import { contentsFor, layoutIssue } from './layout';
+import { contentsFor, flatplan, layoutIssue } from './layout';
 import { sampleEntries } from './sample';
 import { searchEntries } from './search';
 import { DataFormatError, loadData, parseAppData, saveData, STORAGE_KEY } from './storage';
@@ -325,5 +325,27 @@ describe('backups (phase 2)', () => {
     const at = daysAgo(3).toISOString();
     expect(parseAppData({ version: 1, entries: [], lastExportedAt: at }).data.lastExportedAt).toBe(at);
     expect(parseAppData({ version: 1, entries: [], lastExportedAt: 'nonsense' }).data.lastExportedAt).toBeUndefined();
+  });
+});
+
+describe('flatplan', () => {
+  it('shows every planned section as a placeholder on an empty issue', () => {
+    const [issue] = compileIssues({ entries: [], overrides: {} }, new Date(2026, 10, 18));
+    if (!issue) throw new Error('missing issue');
+    const plan = flatplan(layoutIssue(issue));
+    expect(plan.map((s) => (s.status === 'set' ? s.page.kind : `+${s.kind}`))).toEqual([
+      'cover', '+contents', '+feature', '+dispatches', '+overheard', '+numbers', 'back',
+    ]);
+    expect(plan.filter((s) => s.status === 'planned').map((s) => s.status === 'planned' && s.write)).toEqual([null, 'story', 'note', 'quote', null]);
+  });
+
+  it('fills slots as pieces arrive, keeping reader page numbers', () => {
+    const at = new Date(2026, 10, 16);
+    const [issue] = compileIssues({ entries: [note('a note', at)], overrides: {} }, new Date(2026, 10, 18));
+    if (!issue) throw new Error('missing issue');
+    const plan = flatplan(layoutIssue(issue));
+    expect(plan.map((s) => (s.status === 'set' ? `${s.page.kind}@${s.number}` : `+${s.kind}`))).toEqual([
+      'cover@1', 'contents@2', '+feature', 'dispatches@3', '+overheard', 'numbers@4', 'back@5',
+    ]);
   });
 });

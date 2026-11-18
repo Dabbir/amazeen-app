@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { ConfirmDialog, Dialog } from '../../components/Dialog';
 import { backupStatus, mergeData, summarize } from '../../domain/backup';
-import { formatDayMonth, weekKey } from '../../domain/dates';
+import { formatDayMonth, formatMonthYear, weekKey } from '../../domain/dates';
 import { Icon } from '../../components/Icon';
 import { useToast } from '../../components/Toast';
 import ui from '../../components/ui.module.css';
@@ -191,8 +191,31 @@ export default function Settings() {
   return (
     <div className={styles.settings}>
       <header className={styles.head}>
-        <p className="kicker">Editorial office</p>
-        <h1 className={styles.title}>Settings</h1>
+        <p className={styles.ornament} aria-hidden="true">
+          ✦
+        </p>
+        <h1 className={styles.title}>
+          The <em>Office</em>
+        </h1>
+        <p className={styles.sub}>Masthead, archive and house rules</p>
+        <dl className={styles.staff}>
+          <div>
+            <dt>Publication</dt>
+            <dd>{data.magazine?.title}</dd>
+          </div>
+          <div>
+            <dt>Editor-in-chief</dt>
+            <dd>{data.magazine?.editor || 'The Editor'}</dd>
+          </div>
+          <div>
+            <dt>Founded</dt>
+            <dd>{data.magazine ? formatMonthYear(new Date(data.magazine.createdAt)) : '—'}</dd>
+          </div>
+          <div>
+            <dt>Circulation</dt>
+            <dd>One</dd>
+          </div>
+        </dl>
       </header>
 
       <section className={styles.section} aria-labelledby="s-masthead">
