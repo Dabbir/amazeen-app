@@ -16,9 +16,10 @@
     {
       "binding": "DB",
       "database_name": "amazeen-sync",
-      // Paste the ID of your D1 database (dashboard → Storage & databases → D1 → amazeen-sync).
-      // It's an identifier, not a secret, so it's fine to commit.
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      // The ID of the production D1 database (dashboard → Storage & databases → D1 → amazeen-sync).
+      // It's an identifier, not a secret, so it's fine to commit. Local development (`npm run dev:api`)
+      // ignores it and uses a local database instead.
+      "database_id": "68e5379a-ca0f-4af6-84ba-1af7f6ff422f"
     }
   ]
 }

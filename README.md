@@ -33,7 +33,7 @@ Without this the app works fully; the Sync section just reports it can't reach t
 
 1. **Create the database:** dashboard → Storage & databases → D1 → Create database, named `amazeen-sync`. (Or `npx wrangler login && npx wrangler d1 create amazeen-sync`.)
 2. **Create the tables:** open the database → Console, paste the contents of [`migrations/0001_init.sql`](migrations/0001_init.sql), and run it. Future schema changes ship as new files in `migrations/` and are applied the same way.
-3. **Tell the app which database:** copy the database's **ID** from its page and paste it into `database_id` in [`wrangler.jsonc`](wrangler.jsonc), replacing `REPLACE_WITH_YOUR_D1_DATABASE_ID`. The ID is an identifier, not a secret, so it's fine to commit. Merge to `main` and Cloudflare redeploys with the binding.
+3. **Tell the app which database:** copy the database's **ID** from its page and set it as `database_id` in [`wrangler.jsonc`](wrangler.jsonc) (already done for this project's `amazeen-sync`). The ID is an identifier, not a secret, so it's fine to commit. Merge to `main` and Cloudflare redeploys with the binding. To use a different database, change the ID.
 4. **Rate-limit the API** (important, since accounts are anonymous): Security → WAF → Rate limiting rules. For example *URI Path starts with `/api/`* → 120 requests per minute per IP, and a stricter rule for *Method equals POST and URI Path equals `/api/account`* → 5 per 10 minutes.
 5. **Check:** `https://<your-site>/api/health` should return `{"ok":true}`, then try Office → Sync on two devices.
 
