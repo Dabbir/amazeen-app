@@ -27,24 +27,42 @@
   padding-top: clamp(24px, 5vw, 64px);
 }
 
+/* Logo lockup: monogram ≈ 1.23 × cap height (0.7em), on the baseline; mirrors assets/logo. */
 .wordmark {
-  font-size: clamp(4rem, 2rem + 9vw, 10.5rem);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.18em;
+  font-size: clamp(2.9rem, 1.3rem + 5.6vw, 6.6rem);
   font-weight: 900;
   line-height: 0.8;
-  letter-spacing: -0.055em;
-  font-variation-settings: 'SOFT' 30, 'opsz' 144;
-  display: flex;
-  margin-left: -0.04em;
+  letter-spacing: 0;
+  font-variation-settings: 'SOFT' 30, 'WONK' 0, 'opsz' 144;
 }
 
-.wordmark span {
+.mark {
+  flex: none;
+  width: 1.317em;
+  height: 0.86em;
+  color: var(--press);
+  animation: stamp-in 800ms var(--ease-spring) both;
+}
+
+.letters {
+  display: flex;
+  /* align the caps' baseline with the monogram's foot */
+  line-height: 0.7;
+}
+
+.letters span {
   display: inline-block;
   animation: drop 700ms var(--ease-spring) both;
 }
 
-.wordmark span:nth-child(3),
-.wordmark span:nth-child(6) {
-  color: var(--press);
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.6) rotate(-14deg);
+  }
 }
 
 @keyframes drop {
@@ -168,8 +186,8 @@
   .grid {
     grid-template-columns: 1fr;
   }
+  /* The logo leads on small screens; the sample cover follows the form as a preview. */
   .preview {
-    order: -1;
     width: min(300px, 78%);
   }
   .strip span:nth-child(2) {

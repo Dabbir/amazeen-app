@@ -4,6 +4,7 @@ import type { Route } from '../router/router';
 import { useHotkeys } from '../state/hooks';
 import { useStore } from '../state/store';
 import { Icon } from './Icon';
+import { Monogram } from './Logo';
 import type { IconName } from './Icon';
 import styles from './AppShell.module.css';
 
@@ -64,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={styles.topInner}>
           <Link to={paths.desk()} className={styles.brand}>
             <span className={styles.brandMark} aria-hidden="true">
-              A
+              <Monogram className={styles.brandGlyph} />
             </span>
             <span className={styles.brandWord}>Amazeen</span>
           </Link>

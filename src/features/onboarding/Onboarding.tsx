@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { CoverArt } from '../../components/CoverArt';
+import { Monogram } from '../../components/Logo';
 import ui from '../../components/ui.module.css';
 import { LIMITS } from '../../domain/entries';
 import { compileIssues } from '../../domain/issues';
@@ -62,11 +63,14 @@ export function Onboarding() {
       <div className={styles.grid}>
         <section className={styles.copy}>
           <h1 className={styles.wordmark} aria-label="AMAZEEN">
-            {'AMAZEEN'.split('').map((ch, i) => (
-              <span key={i} style={{ animationDelay: `${i * 55}ms` }} aria-hidden="true">
-                {ch}
-              </span>
-            ))}
+            <Monogram className={styles.mark} />
+            <span className={styles.letters} aria-hidden="true">
+              {'AMAZEEN'.split('').map((ch, i) => (
+                <span key={i} style={{ animationDelay: `${180 + i * 55}ms` }}>
+                  {ch}
+                </span>
+              ))}
+            </span>
           </h1>
           <p className={styles.lede}>
             The weekly magazine of <em>your own life.</em> Write a little every day: stories, notes, things people said, lists. Every
