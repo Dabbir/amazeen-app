@@ -1,5 +1,6 @@
 .desk {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(56px, 8vw, 120px);
 }
 
@@ -220,7 +221,7 @@
 .shortcuts {
   margin-left: auto;
   font-style: normal;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   color: var(--ink-3);
 }
 
@@ -479,14 +480,14 @@
 
 .pageNo {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   letter-spacing: 0.06em;
   opacity: 0.75;
 }
 
 .pageLabel {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -510,7 +511,7 @@
   gap: 4px;
   align-items: flex-start;
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   line-height: 1.3;
 }
 
@@ -620,7 +621,7 @@
   gap: 8px;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -882,5 +883,73 @@
   }
   .backup p {
     flex-basis: calc(100% - 40px);
+  }
+}
+
+
+/* ── Responsive audit fixes ─────────────────────────────── */
+.front > * {
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .dateline {
+    font-size: var(--step--2);
+  }
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .stats dd {
+    font-size: clamp(1.6rem, 9vw, 2.4rem);
+    overflow-wrap: anywhere;
+  }
+  .sectionMeta {
+    margin-left: 0;
+  }
+}
+
+
+@media (max-width: 860px) {
+  .circulation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .latest {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .circulation {
+    padding: 24px 18px;
+  }
+  .latestCover {
+    width: 84px;
+  }
+  .stats div + div {
+    padding-left: 10px;
+  }
+}
+
+
+/* Phones: the flatplan becomes a horizontal strip of spreads at a readable page size,
+   snapping spread by spread, rather than shrinking four pages into one row. */
+@media (max-width: 560px) {
+  .spreads {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 8px var(--gutter) 18px;
+    scroll-padding-inline: var(--gutter);
+    mask-image: linear-gradient(90deg, black calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, black calc(100% - 28px), transparent);
+  }
+  .spreads::-webkit-scrollbar {
+    display: none;
+  }
+  .spread {
+    --page-w: 108px;
+    scroll-snap-align: start;
   }
 }

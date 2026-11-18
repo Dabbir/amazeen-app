@@ -1238,3 +1238,38 @@
     min-width: 440px;
   }
 }
+
+
+/* Responsive audit: keep hidden radios inside their swatch. */
+.swatch {
+  position: relative;
+}
+
+/* Responsive audit: on narrow screens the chrome keeps one tidy line of meta and gives the
+   masthead the room; actions tighten up. */
+.chromeTitle {
+  min-width: 0;
+}
+
+.chromeMeta {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .chrome {
+    gap: 6px;
+    padding-inline: 4px 8px;
+  }
+  .chromeActions {
+    gap: 0;
+  }
+  .chromeActions button {
+    padding-inline: 8px;
+  }
+  .chromeMeta .proofTag {
+    display: none;
+  }
+}

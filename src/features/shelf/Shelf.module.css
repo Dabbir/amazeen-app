@@ -1,5 +1,6 @@
 .shelf {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(28px, 4vw, 48px);
 }
 
@@ -29,6 +30,7 @@
 .facts {
   margin: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
   padding-bottom: 10px;
 }
@@ -199,7 +201,7 @@
 
 .faceNo {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -226,7 +228,7 @@
   text-orientation: sideways;
   writing-mode: vertical-rl;
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -458,6 +460,35 @@
     flex-wrap: wrap;
   }
   .leader {
+    display: none;
+  }
+}
+
+
+/* Responsive audit: header and search shrink with the screen. */
+.head > *,
+.tools > * {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .search input {
+    font-size: var(--step-2);
+    min-height: 52px;
+  }
+  .searchLabel {
+    font-size: var(--step--2);
+  }
+}
+
+
+/* Phones: on a flat strip the issue's headline matters more than the masthead, which every
+   strip repeats. Drop the masthead and let the headline take the room. */
+@media (max-width: 700px) {
+  .faceMast {
     display: none;
   }
 }

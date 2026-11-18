@@ -2,6 +2,7 @@
    staff-box roles; the controls sit on the right like the names. */
 .settings {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   max-width: 1040px;
   margin: 0 auto;
 }

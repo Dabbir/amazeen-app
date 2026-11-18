@@ -2,6 +2,26 @@
 
 All notable changes to AMAZEEN. Versions follow [semver](https://semver.org).
 
+## 1.3.0 (2026-11-18)
+
+**The edition lamp, and a responsive and readability pass.**
+
+- **Pull-cord lamp:** the day/night switch is now a pendant lamp with a pull cord.
+  - Pull the cord down to put the lights out (night); pull again for day.
+  - The cord stretches with resistance, springs back and swings. A tap, Space, Enter or ArrowDown also pulls it, and phones get a light haptic tick.
+  - It hangs inside the spine on wide screens; on phones and in the reader the cord dangles below the top bar.
+  - It is still a real `role="switch"`.
+- **Responsive audit:** every screen at 320, 375, 768, 1024 and 1440 px. Fixed:
+  - Horizontal overflow on the Desk, the Shelf, the Composer (hidden radios escaping the chip scroller), the list editor and onboarding.
+  - Shelf strips that lost their titles on phones.
+  - A crowded reader chrome.
+  - A 20 px date picker.
+- **Readable type:**
+  - Small labels raised to at least about 11 px (spine, tabs, flatplan, galley, Shelf spines).
+  - The reader's full-size cover never drops below readable sizes on phones. Decorative thumbnails keep their proportions.
+- **Phones:** the flatplan becomes a swipeable strip of spreads at a readable page size.
+- **Regression guard:** `e2e/responsive.spec.ts` checks overflow, minimum text size and 24 px targets on all main screens at five widths, plus the lamp's pull and tug behaviour.
+
 ## 1.2.0 (2026-11-18)
 
 **Day and Night editions.**
