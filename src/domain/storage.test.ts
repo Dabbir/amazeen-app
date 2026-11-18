@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createEntry } from './entries';
 import { highlight } from './text';
 import { searchEntries } from './search';
-import { createIdbAdapter, createMemoryAdapter, migrate, parseAppData, STORAGE_KEY } from './storage';
+import { createIdbAdapter, createMemoryAdapter, migrate, MIRROR_STAMP_KEY, parseAppData, STORAGE_KEY } from './storage';
 import type { AppData } from './types';
 
 const sample = (): AppData => ({
@@ -73,6 +73,39 @@ describe('IndexedDB adapter', () => {
     await adapter.clear();
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
     expect((await createIdbAdapter({ factory, legacy: localStorage }).load()).status).toBe('empty');
+  });
+
+  it('recovers from an IndexedDB write cut off by the page closing (newer sync mirror wins)', async () => {
+    const factory = new IDBFactory();
+    const adapter = createIdbAdapter({ factory, legacy: localStorage });
+    await adapter.save(sample());
+    // Simulate: the next save's mirror landed, but its IndexedDB write never completed.
+    const newer = { ...sample(), magazine: { title: 'Newer', editor: 'Me', createdAt: '2026-01-01T00:00:00.000Z' } };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newer));
+    localStorage.setItem(MIRROR_STAMP_KEY, String(Date.now() + 1000));
+    const loaded = await createIdbAdapter({ factory, legacy: localStorage }).load();
+    expect(loaded.data.magazine?.title).toBe('Newer');
+  });
+
+  it('keeps working on IndexedDB alone when the mirror is over quota, and never trusts a stale mirror', async () => {
+    const full: Storage = {
+      ...localStorage,
+      getItem: (k: string) => localStorage.getItem(k),
+      removeItem: (k: string) => localStorage.removeItem(k),
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      },
+      clear: () => localStorage.clear(),
+      key: (i: number) => localStorage.key(i),
+      length: 0,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...sample(), magazine: { title: 'Stale', editor: '', createdAt: '2026-01-01T00:00:00.000Z' } }));
+    localStorage.setItem(MIRROR_STAMP_KEY, '1');
+    const factory = new IDBFactory();
+    const adapter = createIdbAdapter({ factory, legacy: full });
+    expect(await adapter.save(sample())).toEqual({ ok: true });
+    expect(localStorage.getItem(MIRROR_STAMP_KEY)).toBeNull();
+    expect((await createIdbAdapter({ factory, legacy: full }).load()).data.magazine?.title).toBe('Mine');
   });
 
   it('memory adapter detects corruption', async () => {

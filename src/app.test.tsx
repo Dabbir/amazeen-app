@@ -133,7 +133,7 @@ describe('app flows', () => {
     seed({ entries: sampleEntries() });
     renderAt('/shelf');
 
-    const covers = await screen.findAllByRole('link', { name: /^Issue No\. \d+/ });
+    const covers = await screen.findAllByRole('link', { name: /^No\. \d+/ });
     await user.click(covers[covers.length - 1] as HTMLElement); // oldest issue
     expect(await screen.findByText(/Page 1 of \d+: Cover/, {}, { timeout: 3000 })).toBeInTheDocument();
 

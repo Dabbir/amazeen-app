@@ -13,6 +13,7 @@ export type Route =
   | { name: 'issue'; key: string; page: number }
   | { name: 'shelf'; query: string }
   | { name: 'settings' }
+  | { name: 'privacy' }
   | { name: 'not-found' };
 
 /** Map a URL path + search string onto a typed route. Pure, so it can be unit-tested. */
@@ -36,6 +37,8 @@ export function matchRoute(pathname: string, search = ''): Route {
       return arg ? { name: 'not-found' } : { name: 'shelf', query: params.get('q') ?? '' };
     case 'settings':
       return arg ? { name: 'not-found' } : { name: 'settings' };
+    case 'privacy':
+      return arg ? { name: 'not-found' } : { name: 'privacy' };
     default:
       return { name: 'not-found' };
   }
@@ -48,6 +51,7 @@ export const paths = {
   issue: (key: string, page = 1) => `/issue/${key}${page > 1 ? `?p=${page}` : ''}`,
   shelf: (query = '') => `/shelf${query ? `?q=${encodeURIComponent(query)}` : ''}`,
   settings: () => '/settings',
+  privacy: () => '/privacy',
 };
 
 interface NavigateOptions {

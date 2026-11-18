@@ -32,9 +32,9 @@
   --riso-pink: #ff4fa3;
   --riso-green: #11a35f;
 
-  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-text: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-  --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces Variable', 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-text: 'Newsreader Variable', 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
   --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.12rem);

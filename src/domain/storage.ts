@@ -207,19 +207,36 @@ export function createMemoryAdapter(initial: unknown = null): StorageAdapter {
 }
 
 const IDB_DATA_KEY = 'data';
+const IDB_STAMP_KEY = 'savedAt';
+/** Timestamp of the synchronous localStorage mirror (see createIdbAdapter). */
+export const MIRROR_STAMP_KEY = 'amazeen:saved-at:v1';
 
 function isQuotaError(err: unknown): boolean {
   return err instanceof DOMException && (err.name === 'QuotaExceededError' || err.code === 22);
 }
 
+function parseOutcome(raw: unknown): LoadOutcome {
+  try {
+    const { data, skipped } = parseAppData(raw);
+    return { status: 'ok', data, skipped };
+  } catch {
+    return { status: 'corrupt', data: EMPTY_DATA, raw: safeStringify(raw) };
+  }
+}
+
 /**
- * IndexedDB-backed storage (the default). On first run it migrates any archive left in localStorage
- * by earlier versions, leaving the old copy in place as a fallback. If IndexedDB is unavailable
- * (some private-browsing modes), it transparently falls back to localStorage.
+ * IndexedDB-backed storage (the default).
+ *
+ * Every save is also mirrored synchronously to localStorage with a timestamp. IndexedDB writes
+ * are asynchronous and can be cut off if the page closes a few milliseconds after an action; the
+ * synchronous mirror always lands, and load() picks whichever copy is newer. The mirror is
+ * best-effort: past localStorage's ~5 MB quota it's skipped and IndexedDB carries on alone.
+ * The mirror uses the original localStorage key, so archives from earlier versions migrate for free.
+ * Where IndexedDB is unavailable (some private modes), localStorage is used on its own.
  */
 export function createIdbAdapter(options: { factory?: IDBFactory | undefined; legacy?: Storage | undefined } = {}): StorageAdapter {
-  const legacy = 'legacy' in options ? options.legacy : safeStorage();
-  const fallback = createLocalStorageAdapter(legacy);
+  const mirror = 'legacy' in options ? options.legacy : safeStorage();
+  const fallback = createLocalStorageAdapter(mirror);
   let kvPromise: Promise<KeyValueStore | null> | null = null;
   const kv = (): Promise<KeyValueStore | null> => {
     kvPromise ??= openKeyValueStore('factory' in options ? options.factory : globalThis.indexedDB).catch((err: unknown) => {
@@ -228,9 +245,10 @@ export function createIdbAdapter(options: { factory?: IDBFactory | undefined; le
     });
     return kvPromise;
   };
+  const mirrorStamp = (): number => Number(readRaw(mirror, MIRROR_STAMP_KEY) ?? 0) || 0;
 
   let mode: StorageAdapter['kind'] = 'indexeddb';
-  const adapter: StorageAdapter = {
+  return {
     get kind() {
       return mode;
     },
@@ -241,36 +259,41 @@ export function createIdbAdapter(options: { factory?: IDBFactory | undefined; le
         return fallback.load();
       }
       let raw: unknown;
+      let stamp = 0;
       try {
-        raw = await store.get(IDB_DATA_KEY);
+        [raw, stamp] = await Promise.all([store.get(IDB_DATA_KEY), store.get(IDB_STAMP_KEY).then((v) => Number(v) || 0)]);
       } catch {
         mode = 'localstorage';
         return fallback.load();
       }
-      if (raw === undefined) {
-        // First run on IndexedDB: adopt the legacy localStorage archive if there is one.
-        const legacyOutcome = await fallback.load();
-        if (legacyOutcome.status === 'ok') {
+      const fromIdb = raw === undefined ? null : parseOutcome(raw);
+      // Prefer the mirror when it's newer (an IndexedDB write was cut off) or IndexedDB has nothing.
+      if (fromIdb === null || mirrorStamp() > stamp) {
+        const fromMirror = await fallback.load();
+        if (fromMirror.status === 'ok') {
           try {
-            await store.set(IDB_DATA_KEY, legacyOutcome.data);
+            await store.set(IDB_DATA_KEY, fromMirror.data);
+            await store.set(IDB_STAMP_KEY, mirrorStamp());
           } catch {
-            /* keep serving from memory; the next save retries */
+            /* serve from the mirror; the next save retries */
           }
+          return fromMirror;
         }
-        return legacyOutcome;
+        if (fromIdb === null) return fromMirror; // empty or corrupt, nothing better available
       }
-      try {
-        const { data, skipped } = parseAppData(raw);
-        return { status: 'ok', data, skipped };
-      } catch {
-        return { status: 'corrupt', data: EMPTY_DATA, raw: safeStringify(raw) };
-      }
+      return fromIdb;
     },
     async save(data) {
+      const stamp = Date.now();
+      // Synchronous safety net first: survives the page closing mid-write.
+      const mirrored = writeRaw(mirror, STORAGE_KEY, JSON.stringify(data));
+      if (mirrored.ok) writeRaw(mirror, MIRROR_STAMP_KEY, String(stamp));
+      else removeRaw(mirror, MIRROR_STAMP_KEY); // a stale mirror must never win
       const store = await kv();
-      if (!store) return fallback.save(data);
+      if (!store) return mirrored;
       try {
         await store.set(IDB_DATA_KEY, data);
+        await store.set(IDB_STAMP_KEY, stamp);
         return { ok: true };
       } catch (err) {
         return { ok: false, reason: isQuotaError(err) ? 'quota' : 'unavailable' };
@@ -289,10 +312,11 @@ export function createIdbAdapter(options: { factory?: IDBFactory | undefined; le
     async clear() {
       const store = await kv();
       await store?.delete(IDB_DATA_KEY).catch(() => undefined);
-      await fallback.clear();
+      await store?.delete(IDB_STAMP_KEY).catch(() => undefined);
+      removeRaw(mirror, STORAGE_KEY);
+      removeRaw(mirror, MIRROR_STAMP_KEY);
     },
   };
-  return adapter;
 }
 
 function safeStringify(value: unknown): string {

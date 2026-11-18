@@ -199,15 +199,15 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
                     <Link
                       to={paths.issue(issue.key)}
                       className={styles.issueLink}
-                      aria-label={`Issue No. ${issue.number}, ${formatWeekRange(issue.weekStart, issue.weekEnd)}: ${issue.headline}`}
                     >
                       <CoverArt issue={issue} masthead={data.magazine?.title ?? ''} decorative morph />
-                      <span className={styles.caption} aria-hidden="true">
+                      <span className={styles.caption}>
                         <span className={styles.captionNo}>
                           No. {issue.number}
                           {issue.status === 'in-production' && <span className={styles.proof}>Proof</span>}
                         </span>
                         <span className={styles.captionDate}>{formatWeekRange(issue.weekStart, issue.weekEnd)}</span>
+                        <span className="visually-hidden">: {issue.headline}</span>
                       </span>
                     </Link>
                   </li>

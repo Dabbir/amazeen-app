@@ -208,7 +208,7 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
   return (
     <div className={styles.page} onKeyDown={onKeyDown}>
       <header className={styles.bar}>
-        <button type="button" className={`${ui.btn} ${ui.quiet} ${styles.back}`} onClick={leave}>
+        <button type="button" className={`${ui.btn} ${ui.quiet} ${styles.back}`} onClick={leave} aria-label="Back to desk">
           <Icon name="left" size={18} />
           <span>Desk</span>
         </button>

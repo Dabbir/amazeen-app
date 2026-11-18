@@ -48,6 +48,7 @@ export function Desk() {
   const published = issues.filter((i) => i.status === 'published' && i.entries.length > 0).length;
   const editorFirst = data.magazine?.editor.split(' ')[0] ?? '';
   const days = groupByDay(current.entries);
+  const coverHint = current.entries.length ? 'Preview the proof' : 'See the blank proof';
 
   const onDelete = (entry: Entry): void => {
     const removed = store.deleteEntry(entry.id);
@@ -112,10 +113,15 @@ export function Desk() {
           <Link
             to={paths.issue(current.key)}
             className={styles.coverLink}
-            aria-label={`Preview Issue No. ${current.number}: ${current.headline}`}
           >
             <CoverArt issue={current} masthead={data.magazine?.title ?? 'Amazeen'} morph decorative />
-            <span className={styles.coverHint}>{current.entries.length ? 'Preview the proof' : 'See the blank proof'} →</span>
+            <span className={styles.coverHint}>
+              {coverHint}
+              <span className="visually-hidden">
+                : Issue No. {current.number}, {current.headline}
+              </span>{' '}
+              <span aria-hidden="true">→</span>
+            </span>
           </Link>
 
           <div className={styles.check} aria-labelledby="press-check">

@@ -138,11 +138,11 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
           </span>
         </div>
         <div className={styles.chromeActions}>
-          <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => setEditing(true)}>
+          <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => setEditing(true)} aria-label="Edit cover">
             <Icon name="palette" size={16} />
             <span className={styles.hideSm}>Cover</span>
           </button>
-          <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => window.print()} disabled={issue.entries.length === 0}>
+          <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => window.print()} disabled={issue.entries.length === 0} aria-label="Print this issue">
             <Icon name="print" size={16} />
             <span className={styles.hideSm}>Print</span>
           </button>
@@ -154,7 +154,16 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
           <Icon name="left" size={26} />
         </button>
 
-        <div key={index} className={styles.pageSlot} data-direction={direction} data-kind={current?.kind} data-scroll>
+        <div
+          key={index}
+          className={styles.pageSlot}
+          data-direction={direction}
+          data-kind={current?.kind}
+          // Focusable so keyboard users can scroll long pages with the arrow/space keys.
+          tabIndex={0}
+          role="region"
+          aria-label={`Page ${index + 1}${current ? `: ${pageLabel(current)}` : ''}`}
+        >
           {current && <PageView page={current} n={index + 1} ctx={ctx} />}
         </div>
 

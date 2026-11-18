@@ -49,7 +49,7 @@
   --btn-border: var(--ink);
 }
 .danger {
-  --btn-fg: var(--press);
+  --btn-fg: var(--press-text);
   --btn-border: var(--press);
 }
 .quiet {

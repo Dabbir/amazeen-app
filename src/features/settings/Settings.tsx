@@ -11,9 +11,11 @@ import { sampleEntries } from '../../domain/sample';
 import { DataFormatError, MAX_IMPORT_BYTES, parseAppData } from '../../domain/storage';
 import type { AppData } from '../../domain/types';
 import { downloadText } from '../../lib/download';
+import { promptInstall, useInstallState } from '../../lib/install';
 import { isStoragePersisted, requestPersistentStorage } from '../../lib/persist';
 import { useDocumentTitle } from '../../state/hooks';
 import { useNow } from '../../state/now';
+import { Link, paths } from '../../router/router';
 import { useStore } from '../../state/store';
 import { useExportArchive } from '../../state/useExportArchive';
 import styles from './Settings.module.css';
@@ -85,6 +87,39 @@ function MastheadForm() {
   );
 }
 
+function InstallSection() {
+  const state = useInstallState();
+  const toast = useToast();
+  if (state === 'unsupported') return null;
+  return (
+    <section className={styles.section} aria-labelledby="s-install">
+      <div className={styles.sectionIntro}>
+        <h2 id="s-install">Install</h2>
+        <p>Put AMAZEEN on your home screen. It opens like an app, works offline, and the browser keeps your archive safer.</p>
+      </div>
+      <div className={styles.installBody}>
+        {state === 'installed' && <p className={styles.status}>Installed. You’re reading the app version.</p>}
+        {state === 'available' && (
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.primary}`}
+            onClick={() => void promptInstall().then((ok) => ok && toast.push({ message: 'AMAZEEN is on your home screen.' }))}
+          >
+            Install AMAZEEN
+          </button>
+        )}
+        {state === 'ios' && (
+          <ol className={styles.steps}>
+            <li>Tap the Share button in Safari.</li>
+            <li>Choose “Add to Home Screen”.</li>
+            <li>Open AMAZEEN from your home screen.</li>
+          </ol>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Settings() {
   useDocumentTitle('Settings');
   const { data, replaceData, eraseAll, readRawArchive, loadStatus, storageKind } = useStore();
@@ -105,6 +140,7 @@ export default function Settings() {
   const [confirmSample, setConfirmSample] = useState(false);
   const [erasing, setErasing] = useState(false);
   const [eraseText, setEraseText] = useState('');
+  const [wiping, setWiping] = useState(false);
   const eraseId = useId();
 
   const exportRescue = async (): Promise<void> => {
@@ -257,6 +293,8 @@ export default function Settings() {
         </div>
       </section>
 
+      <InstallSection />
+
       <section className={`${styles.section} ${styles.danger}`} aria-labelledby="s-danger">
         <div className={styles.sectionIntro}>
           <h2 id="s-danger">Stop the presses</h2>
@@ -341,6 +379,10 @@ export default function Settings() {
         )}
       </Dialog>
 
+      <p className={styles.version}>
+        AMAZEEN v{__APP_VERSION__} · Your data never leaves this device. <Link to={paths.privacy()}>Privacy</Link>
+      </p>
+
       <ConfirmDialog
         open={confirmSample}
         title="Replace with sample issues?"
@@ -378,14 +420,18 @@ export default function Settings() {
             <button
               type="button"
               className={`${ui.btn} ${ui.danger}`}
-              disabled={eraseText.trim().toUpperCase() !== ERASE_WORD}
+              disabled={eraseText.trim().toUpperCase() !== ERASE_WORD || wiping}
+              aria-busy={wiping}
               onClick={() => {
-                setErasing(false);
-                setEraseText('');
-                void eraseAll();
+                // Keep the dialog up until storage has actually been wiped.
+                setWiping(true);
+                void eraseAll().catch(() => {
+                  setWiping(false);
+                  toast.push({ tone: 'error', message: 'Couldn’t erase everything. Please try again.' });
+                });
               }}
             >
-              Erase permanently
+              {wiping ? 'Erasing…' : 'Erase permanently'}
             </button>
           </>
         }
