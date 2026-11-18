@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4317;
+// The app and its sync API are served together by Cloudflare's own local runtime (workerd), with
+// the real _headers (strict CSP) applied, so tests run as close to production as possible.
+const PORT = 8788;
 
 export default defineConfig({
   testDir: './e2e',
@@ -19,9 +21,9 @@ export default defineConfig({
   ],
   // Tests run against the production build (service worker included).
   webServer: {
-    command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
+    command: 'rm -rf .wrangler/state && npm run dev:api',
+    url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });
