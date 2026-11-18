@@ -50,7 +50,7 @@ export function CoverArt({ issue, masthead, morph = false, decorative = false, c
 
   return (
     <div className={`${styles.frame} ${className ?? ''}`}>
-      <article className={styles.cover} data-ink={issue.ink} style={style} aria-hidden={decorative || undefined}>
+      <article className={styles.cover} data-ink={issue.ink} style={style} aria-hidden={decorative || undefined} data-legible={decorative ? undefined : ''}>
         <div className={styles.halftone} aria-hidden="true" />
         <div className={styles.numeral} aria-hidden="true">
           {issue.number}

@@ -231,3 +231,34 @@
   background: var(--c-bg);
   box-shadow: 0 0 0 0.6cqi var(--c-bg);
 }
+
+
+/* A cover meant to be read (the reader's cover page, not a thumbnail) never drops its small type
+   below a readable size, however narrow the screen. Thumbnails keep their true proportions. */
+.cover[data-legible] .meta {
+  font-size: max(2.35cqi, 11px);
+}
+.cover[data-legible] .weatherIcon {
+  width: max(3.4cqi, 14px);
+  height: max(3.4cqi, 14px);
+}
+.cover[data-legible] .lines {
+  max-width: max(48cqi, 220px);
+  font-size: max(3.5cqi, 13px);
+  gap: max(2.4cqi, 8px);
+}
+.cover[data-legible] .lines li {
+  padding-left: max(3.6cqi, 14px);
+}
+.cover[data-legible] .kicker {
+  font-size: max(2.3cqi, 11px);
+}
+.cover[data-legible] .footText {
+  font-size: max(2.2cqi, 11px);
+}
+.cover[data-legible] .emptyNote {
+  font-size: max(3.4cqi, 13px);
+}
+.cover[data-legible] .stamp {
+  font-size: max(4.2cqi, 12px);
+}

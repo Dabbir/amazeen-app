@@ -13,6 +13,7 @@
   --press-text: #ff6b55;
   --press-ink: #1b0c08;
   min-height: 100dvh;
+  overflow-x: clip;
   padding: 0 var(--gutter) 56px;
   background:
     radial-gradient(ellipse 60% 70% at 78% 45%, rgb(255 106 43 / 0.16), transparent 70%),

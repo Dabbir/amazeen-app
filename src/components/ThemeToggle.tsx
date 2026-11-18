@@ -1,9 +1,10 @@
-import type { MouseEvent } from 'react';
+import { useRef } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react';
 import { setPreference, useTheme } from '../lib/theme';
 import styles from './ThemeToggle.module.css';
 
 interface ThemeToggleProps {
-  /** Vertical sits in the spine; horizontal in top bars. */
+  /** `vertical`: the lamp hangs inside the spine. `horizontal`: it hangs from a top bar, cord dangling below it. */
   orientation?: 'vertical' | 'horizontal';
   size?: 'regular' | 'small';
   className?: string | undefined;
@@ -21,43 +22,112 @@ export function visibleThemeSwitch(): Element | null {
   return [...document.querySelectorAll('[data-theme-switch]')].find((el) => el.getBoundingClientRect().width > 0) ?? null;
 }
 
+const MAX_PULL = 34; // px the cord stretches
+const PULL_TO_TOGGLE = 14; // a deliberate pull
+const TAP_SLOP = 6; // movement still counted as a tap
+
 /**
- * Day / Night edition switch. A real switch (role="switch") so it announces its state and
- * works with Space/Enter; the new edition spills out from the knob as a circle of ink.
+ * Day / Night edition as a pull-cord lamp. Pull the cord (drag it down, tap it, or press
+ * Space/Enter) and the lights go out; pull again and they come back on. It is a real switch
+ * (role="switch"), and the new edition spills out from the bulb as a circle of ink.
  */
 export function ThemeToggle({ orientation = 'horizontal', size = 'regular', className }: ThemeToggleProps) {
   const { theme } = useTheme();
   const night = theme === 'dark';
+  const ref = useRef<HTMLButtonElement>(null);
+  const drag = useRef<{ y: number; pull: number; pointerId: number } | null>(null);
 
+  const setPull = (px: number): void => {
+    ref.current?.style.setProperty('--pull', `${px}px`);
+  };
+
+  /** Flip the edition with a tug of the cord and a swing on release. */
+  const pullCord = (): void => {
+    const el = ref.current;
+    if (!el) return;
+    toggleTheme(theme, el.querySelector(`.${styles.bulb}`) ?? el);
+    el.classList.remove(styles.swing ?? '');
+    void el.offsetWidth; // restart the swing animation
+    el.classList.add(styles.swing ?? '');
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(12);
+  };
+
+  const onPointerDown = (e: PointerEvent<HTMLButtonElement>): void => {
+    if (e.button !== 0) return;
+    drag.current = { y: e.clientY, pull: 0, pointerId: e.pointerId };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.currentTarget.dataset.dragging = 'true';
+  };
+
+  const onPointerMove = (e: PointerEvent<HTMLButtonElement>): void => {
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    // Resistance grows as the cord stretches, like the real thing.
+    const raw = Math.max(0, e.clientY - d.y);
+    d.pull = MAX_PULL * (1 - Math.exp(-raw / MAX_PULL));
+    setPull(d.pull);
+  };
+
+  const endDrag = (e: PointerEvent<HTMLButtonElement>, cancelled = false): void => {
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    drag.current = null;
+    delete e.currentTarget.dataset.dragging;
+    const moved = Math.abs(e.clientY - d.y);
+    setPull(0);
+    if (!cancelled && (d.pull >= PULL_TO_TOGGLE || moved <= TAP_SLOP)) pullCord();
+  };
+
+  // Pointer activation is handled above; keyboard "clicks" (detail === 0) land here.
   const onClick = (e: MouseEvent<HTMLButtonElement>): void => {
-    const knob = e.currentTarget.querySelector(`.${styles.knob}`);
-    toggleTheme(theme, knob ?? e.currentTarget);
+    if (e.detail === 0) pullCord();
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>): void => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      pullCord();
+    }
   };
 
   return (
     <button
+      ref={ref}
       type="button"
       role="switch"
       aria-checked={night}
       aria-label="Night edition"
-      title={night ? 'Night edition (T to switch)' : 'Day edition (T to switch)'}
-      className={`${styles.toggle} ${className ?? ''}`}
+      aria-keyshortcuts="T"
+      title={night ? 'Lights off: night edition. Pull to switch (T)' : 'Lights on: day edition. Pull to switch (T)'}
+      className={`${styles.lamp} ${className ?? ''}`}
       data-orientation={orientation}
       data-size={size}
       data-theme-switch=""
       data-theme-state={theme}
+      style={{ '--pull': '0px' } as CSSProperties}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={(e) => endDrag(e)}
+      onPointerCancel={(e) => endDrag(e, true)}
       onClick={onClick}
+      onKeyDown={onKeyDown}
+      onAnimationEnd={(e) => e.currentTarget.classList.remove(styles.swing ?? '')}
     >
-      <span className={styles.track} aria-hidden="true">
-        <svg className={styles.sun} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+      <span className={styles.fixture} aria-hidden="true">
+        <span className={styles.glow} />
+        <svg className={styles.shade} viewBox="0 0 40 28">
+          <path className={styles.stem} d="M20 0v6" />
+          <path className={styles.hood} d="M8 22 C9 12 14 7 20 7 C26 7 31 12 32 22 Z" />
+          <path className={styles.rim} d="M6 22h28" />
         </svg>
-        <svg className={styles.moon} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
-        </svg>
-        <span className={styles.stars} />
-        <span className={styles.knob} />
+        <span className={styles.bulb} />
+      </span>
+      <span className={styles.cord} aria-hidden="true">
+        <span className={styles.string} />
+        <span className={styles.bead} />
+      </span>
+      <span className={styles.label} aria-hidden="true">
+        {night ? 'Night' : 'Day'}
       </span>
     </button>
   );

@@ -756,3 +756,25 @@
     width: 100%;
   }
 }
+
+
+/* ── Responsive audit fixes ─────────────────────────────── */
+/* Visually hidden radios/checkboxes are absolutely positioned: anchor them to their label so they
+   never escape the horizontally scrolling chip row and widen the page. */
+.chip,
+.mood,
+.starToggle {
+  position: relative;
+}
+
+/* List items: let the text field shrink so the remove button stays on screen. */
+.itemField {
+  min-width: 0;
+  width: 100%;
+}
+
+/* The "filed on" picker is a real control: give it a comfortable tap target. */
+.when select {
+  min-height: 30px;
+  padding: 4px 6px;
+}
