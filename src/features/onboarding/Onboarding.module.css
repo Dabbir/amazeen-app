@@ -1,8 +1,28 @@
 .page {
+  /* Issue Zero: a dark stage with its own local palette, so shared components adapt. */
+  --paper: #15130f;
+  --paper-2: #221e19;
+  --sheet: #1c1915;
+  --ink: #efe9dd;
+  --ink-2: #c3baa9;
+  --ink-3: #9a9285;
+  --rule: rgb(239 233 221 / 0.85);
+  --hairline: rgb(239 233 221 / 0.18);
+  --proof: #8ea4ff;
+  --press: #ff5a42;
+  --press-text: #ff6b55;
+  --press-ink: #1b0c08;
   min-height: 100dvh;
-  padding: 0 var(--gutter) 48px;
+  padding: 0 var(--gutter) 56px;
+  background:
+    radial-gradient(ellipse 60% 70% at 78% 45%, rgb(255 106 43 / 0.16), transparent 70%),
+    var(--spine);
+  color: var(--ink);
+}
+
+.page > * {
   max-width: var(--max);
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .strip {
@@ -136,7 +156,7 @@
 .suggestion:hover {
   border-color: var(--ink);
   color: var(--ink);
-  background: var(--sheet);
+  background: var(--paper-2);
 }
 
 .actions {
@@ -152,9 +172,35 @@
 }
 
 .preview {
+  position: relative;
   justify-self: center;
   width: min(440px, 100%);
   animation: float-in 900ms 200ms var(--ease-out) both;
+}
+
+/* A huge outlined "Nº0" behind the cover: the issue before the first issue. */
+.zero {
+  position: absolute;
+  top: -14%;
+  right: -16%;
+  z-index: -1;
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--font-display);
+  font-size: clamp(14rem, 8rem + 18vw, 30rem);
+  font-weight: 900;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(239 233 221 / 0.22);
+  user-select: none;
+  pointer-events: none;
+}
+
+.zero span {
+  font-size: 0.24em;
+  margin-top: 0.24em;
+  -webkit-text-stroke: 1.5px rgb(255 90 66 / 0.6);
 }
 
 .preview > :first-child {

@@ -1,168 +1,219 @@
 .shell {
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
 }
 
 .skip {
-  position: absolute;
+  position: fixed;
   left: 12px;
   top: -60px;
   z-index: 200;
   padding: 10px 16px;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: var(--font-ui);
+  background: var(--press);
+  color: var(--press-ink);
+  font-family: var(--font-mono);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 2px;
   transition: top 160ms var(--ease-out);
 }
 .skip:focus {
   top: 12px;
 }
 
-.topbar {
-  position: sticky;
-  top: 0;
+/* ── Spine (wide screens) ──────────────────────────────── */
+.spine {
+  position: fixed;
+  inset: 0 auto 0 0;
   z-index: 50;
-  height: var(--topbar-h);
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  -webkit-backdrop-filter: saturate(1.4) blur(10px);
-  border-bottom: 1.5px solid var(--rule);
-}
-
-.topInner {
-  height: 100%;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 0 var(--gutter);
+  width: var(--spine-w);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
+  padding: 14px 0 18px;
+  background: var(--spine);
+  color: var(--spine-ink);
+  /* the spine's fold: a soft highlight along the binding edge */
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.06), 6px 0 24px -12px rgb(0 0 0 / 0.45);
 }
 
 .brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
+  display: block;
+  border-radius: 8px;
 }
 
-.brandMark {
+.brandTile {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
   background: var(--press);
-  color: var(--paper);
-  transition: transform 300ms var(--ease-spring);
+  color: #f2ede3;
+  transition: transform 400ms var(--ease-spring);
+}
+.brand:hover .brandTile,
+.topBrand:hover .brandTile {
+  transform: rotate(-8deg) scale(1.06);
 }
 
 .brandGlyph {
-  width: 21px;
+  width: 28px;
   height: auto;
   margin: 1px 1px 0 0; /* optical centring: the swash pulls the visual mass left */
 }
 
-.brand:hover .brandMark {
-  transform: rotate(-10deg) scale(1.08);
+.spineNav {
+  margin-top: 28px;
 }
 
-.brandWord {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 1.45rem;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  font-variation-settings: 'SOFT' 30, 'opsz' 144;
-}
-
-.edition {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  padding-left: 18px;
-  border-left: 1px solid var(--hairline);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 260px;
-}
-
-.nav {
+.spineNav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  gap: 4px;
-  margin-left: auto;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.navLink {
+.spineLink {
   position: relative;
-  padding: 10px 14px;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: 0.92rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: var(--spine-w);
+  padding: 14px 0;
+  color: var(--spine-dim);
   text-decoration: none;
-  color: var(--ink-2);
-  transition: color 140ms;
+  transition: color 200ms;
 }
-.navLink::after {
+
+/* the active section: a vermilion tab protruding from the spine's edge */
+.spineLink::after {
   content: '';
   position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 4px;
-  height: 2px;
+  top: 10px;
+  bottom: 10px;
+  right: -1px;
+  width: 4px;
   background: var(--press);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 260ms var(--ease-out);
-}
-.navLink:hover {
-  color: var(--ink);
-}
-.navLink:hover::after,
-.navLink[aria-current='page']::after {
-  transform: scaleX(1);
-}
-.navLink[aria-current='page'] {
-  color: var(--ink);
+  transform: scaleY(0);
+  transition: transform 360ms var(--ease-out);
 }
 
-.fileBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
-  background: var(--press);
-  color: var(--press-ink);
-  font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: transform 160ms var(--ease-out), box-shadow 160ms;
+.spineLink:hover {
+  color: var(--spine-ink);
 }
-.fileBtn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--ink);
+
+.spineLink[aria-current='page'] {
+  color: var(--spine-ink);
+}
+.spineLink[aria-current='page']::after {
+  transform: scaleY(1);
+}
+
+.spineLink:focus-visible {
+  outline-color: var(--spine-ink);
+  outline-offset: -4px;
+}
+
+.spineIndex {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--press);
+}
+
+.spineLabel {
+  text-orientation: sideways;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: letter-spacing 300ms var(--ease-out);
+}
+.spineLink:hover .spineLabel {
+  letter-spacing: 0.08em;
+}
+
+.spineTitle {
+  text-orientation: sideways;
+  flex: 1;
+  min-height: 0;
+  margin: 24px 0;
+  overflow: hidden;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--spine-ink);
+  opacity: 0.18;
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  mask-image: linear-gradient(to top, black 70%, transparent);
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent);
+}
+.spineTitle::before {
+  content: attr(data-text);
+}
+
+.deadline {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+}
+
+.deadlineValue {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--spine-ink);
+}
+
+.deadlineLabel {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--spine-dim);
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--press);
+  animation: pulse 2.2s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgb(212 58 36 / 0.6); }
+  70% { box-shadow: 0 0 0 10px rgb(212 58 36 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(212 58 36 / 0); }
+}
+
+/* ── Content frame ─────────────────────────────────────── */
+.frame {
+  margin-left: var(--spine-w);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 .banner {
-  max-width: var(--max);
-  margin: 12px auto 0;
-  padding: 12px var(--gutter);
-  width: calc(100% - 2 * var(--gutter));
+  margin: 16px var(--gutter) 0;
+  padding: 12px 16px;
   border: 1.5px solid var(--press);
+  border-left-width: 6px;
   background: var(--press-soft);
-  border-radius: 6px;
-  font-family: var(--font-ui);
-  font-size: 0.92rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
 }
 
 .main {
@@ -170,66 +221,118 @@
   width: 100%;
   max-width: var(--max);
   margin: 0 auto;
-  padding: clamp(24px, 4vw, 48px) var(--gutter) clamp(48px, 8vw, 96px);
+  padding: clamp(24px, 4vw, 56px) var(--gutter) clamp(64px, 9vw, 120px);
   outline: none;
 }
 
-.tabbar {
+/* ── Phones and small tablets ──────────────────────────── */
+.topbar,
+.tabs {
   display: none;
 }
 
-@media (max-width: 760px) {
-  .nav,
-  .fileBtn,
-  .edition {
+@media (max-width: 899px) {
+  .spine {
     display: none;
   }
+
   .topbar {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: var(--topbar-h);
+    padding: 0 16px;
+    background: var(--spine);
+    color: var(--spine-ink);
   }
+
+  .topBrand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    text-decoration: none;
+  }
+
+  .topBrand .brandTile {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+  }
+
+  .topBrand .brandGlyph {
+    width: 22px;
+  }
+
+  .topTitle {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topMeta {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--spine-dim);
+  }
+
   .main {
-    padding-bottom: calc(110px + env(safe-area-inset-bottom));
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
   }
-  .tabbar {
+
+  /* Index tabs along the bottom edge, like a thumb-indexed reference book. */
+  .tabs {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 60;
     display: grid;
-    grid-template-columns: 1fr 72px 1fr 1fr;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--paper) 92%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1.5px solid var(--rule);
+    grid-template-columns: repeat(4, 1fr);
+    align-items: end;
+    padding: 0 8px env(safe-area-inset-bottom);
+    background: var(--spine);
   }
-  .tab {
+
+  .tab,
+  .tabWrite {
     display: grid;
     justify-items: center;
-    gap: 2px;
-    padding: 6px 0;
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
+    gap: 3px;
+    padding: 10px 0 9px;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
     font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     text-decoration: none;
-    color: var(--ink-3);
+    color: var(--spine-dim);
+    border-top: 3px solid transparent;
+    transition: color 200ms, border-color 200ms;
   }
+
   .tab[aria-current='page'] {
-    color: var(--ink);
+    color: var(--spine-ink);
+    border-top-color: var(--press);
   }
-  .tabFile {
-    display: grid;
-    place-items: center;
-    width: 54px;
-    height: 54px;
-    margin-top: -22px;
-    border-radius: 50%;
-    border: 1.5px solid var(--ink);
+
+  .tabWrite {
+    margin-top: -14px;
+    padding-top: 12px;
     background: var(--press);
     color: var(--press-ink);
-    box-shadow: 3px 3px 0 var(--ink);
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 -10px 24px -14px rgb(212 58 36 / 0.8);
   }
 }

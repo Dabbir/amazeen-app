@@ -1,4 +1,4 @@
-/* Buttons ─────────────────────────────────────────────── */
+/* Buttons: production stamps ─────────────────────────── */
 .btn {
   --btn-bg: transparent;
   --btn-fg: var(--ink);
@@ -7,35 +7,36 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5em;
+  gap: 0.6em;
   min-height: 44px;
-  padding: 0.55em 1.15em;
+  padding: 0.5em 1.1em;
   border: 1.5px solid var(--btn-border);
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-family: var(--font-ui);
-  font-size: 0.92rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   text-decoration: none;
   white-space: nowrap;
-  transition: transform 160ms var(--ease-out), background-color 160ms, color 160ms, box-shadow 160ms;
+  transition: transform 180ms var(--ease-out), background-color 180ms, color 180ms, box-shadow 180ms;
   -webkit-tap-highlight-color: transparent;
 }
 .btn > svg {
   flex-shrink: 0;
 }
 .btn:hover {
-  box-shadow: 3px 3px 0 var(--btn-border);
-  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--btn-border);
+  transform: translate(-2px, -2px);
 }
 .btn:active {
   box-shadow: 0 0 0 var(--btn-border);
   transform: translate(1px, 1px);
 }
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
@@ -53,7 +54,7 @@
 }
 .danger {
   --btn-fg: var(--press-text);
-  --btn-border: var(--press);
+  --btn-border: var(--press-text);
 }
 .quiet {
   --btn-border: transparent;
@@ -66,8 +67,8 @@
 }
 .small {
   min-height: 34px;
-  font-size: 0.82rem;
-  padding: 0.35em 0.85em;
+  font-size: 0.72rem;
+  padding: 0.3em 0.8em;
 }
 
 .iconBtn {
@@ -95,10 +96,10 @@
 /* Fields ──────────────────────────────────────────────── */
 .label {
   display: block;
-  font-family: var(--font-ui);
-  font-size: var(--step--1);
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-2);
   margin-bottom: 0.4rem;
@@ -117,8 +118,8 @@
 }
 .input:focus {
   outline: none;
-  border-bottom-color: var(--press);
-  box-shadow: 0 1.5px 0 var(--press);
+  border-bottom-color: var(--proof);
+  box-shadow: 0 1.5px 0 var(--proof);
 }
 .input[aria-invalid='true'] {
   border-bottom-color: var(--press);
@@ -149,10 +150,10 @@
   max-height: calc(100dvh - 32px);
   padding: 0;
   border: 1.5px solid var(--ink);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--sheet);
   color: var(--ink);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: 10px 10px 0 var(--ink);
 }
 .dialog[open] {
   animation: dialog-in 260ms var(--ease-spring);
@@ -189,7 +190,7 @@
 /* Toasts ──────────────────────────────────────────────── */
 .toasts {
   position: fixed;
-  left: 50%;
+  left: calc(50% + var(--spine-w) / 2);
   bottom: max(20px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 100;
@@ -198,9 +199,9 @@
   width: min(460px, calc(100vw - 32px));
   pointer-events: none;
 }
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   .toasts {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
 .toastStack {
@@ -215,9 +216,10 @@
   padding: 12px 12px 12px 18px;
   background: var(--ink);
   color: var(--paper);
-  border-radius: 6px;
-  font-family: var(--font-ui);
-  font-size: 0.92rem;
+  border-radius: 2px;
+  border-left: 6px solid var(--press);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.5);
   animation: toast-in 380ms var(--ease-spring);
 }

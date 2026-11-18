@@ -1,17 +1,27 @@
 import type { ReactNode } from 'react';
+import { timeUntil } from '../domain/dates';
 import { Link, paths, useRouter } from '../router/router';
 import type { Route } from '../router/router';
 import { useHotkeys } from '../state/hooks';
+import { useNow } from '../state/now';
 import { useStore } from '../state/store';
 import { Icon } from './Icon';
-import { Monogram } from './Logo';
 import type { IconName } from './Icon';
+import { Monogram } from './Logo';
 import styles from './AppShell.module.css';
 
-const NAV: { name: Route['name']; label: string; to: string; icon: IconName }[] = [
+interface NavItem {
+  name: Route['name'] | 'write';
+  label: string;
+  to: string;
+  icon: IconName;
+}
+
+const NAV: NavItem[] = [
   { name: 'desk', label: 'Desk', to: paths.desk(), icon: 'desk' },
+  { name: 'write', label: 'Write', to: paths.write('story'), icon: 'edit' },
   { name: 'shelf', label: 'Shelf', to: paths.shelf(), icon: 'book' },
-  { name: 'settings', label: 'Settings', to: paths.settings(), icon: 'cog' },
+  { name: 'settings', label: 'Office', to: paths.settings(), icon: 'cog' },
 ];
 
 function StorageBanner() {
@@ -19,8 +29,8 @@ function StorageBanner() {
   if (loadStatus === 'corrupt') {
     return (
       <div className={styles.banner} role="alert">
-        We couldn’t read your saved archive. It hasn’t been touched — export a rescue copy from{' '}
-        <Link to={paths.settings()}>Settings</Link> before writing anything new.
+        We couldn’t read your saved archive. It hasn’t been touched — export a rescue copy from the{' '}
+        <Link to={paths.settings()}>Office</Link> before writing anything new.
       </div>
     );
   }
@@ -28,7 +38,7 @@ function StorageBanner() {
     return (
       <div className={styles.banner} role="alert">
         {saveStatus.reason === 'quota'
-          ? 'This browser’s storage is full, so recent changes aren’t saved. Export your archive from Settings to keep a copy.'
+          ? 'This browser’s storage is full, so recent changes aren’t saved. Export your archive from the Office to keep a copy.'
           : 'Storage is unavailable (private browsing?), so changes will be lost when you close this tab.'}
       </div>
     );
@@ -36,9 +46,24 @@ function StorageBanner() {
   return null;
 }
 
+/** Short countdown for the spine: "4d", "9h", "40m". */
+function shortCountdown(target: Date, now: Date): string {
+  const minutes = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 60_000));
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}h`;
+  return `${Math.floor(minutes / 1440)}d`;
+}
+
+/**
+ * The production room's frame. On wide screens, a magazine spine runs down the left edge:
+ * monogram, the sections set vertically like spine titles, the masthead, and the press deadline.
+ * On phones, a slim masthead bar on top and index tabs along the bottom.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const { route, navigate } = useRouter();
   const { data, current } = useStore();
+  const now = useNow();
+  const masthead = data.magazine?.title ?? 'Amazeen';
 
   useHotkeys({
     n: (e) => {
@@ -56,62 +81,80 @@ export function AppShell({ children }: { children: ReactNode }) {
     },
   });
 
+  const isCurrent = (item: NavItem) => (route.name === item.name ? 'page' : undefined);
+
   return (
     <div className={styles.shell}>
       <a className={styles.skip} href="#main">
         Skip to content
       </a>
-      <header className={styles.topbar}>
-        <div className={styles.topInner}>
-          <Link to={paths.desk()} className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">
-              <Monogram className={styles.brandGlyph} />
-            </span>
-            <span className={styles.brandWord}>Amazeen</span>
-          </Link>
-          <span className={styles.edition} aria-hidden="true">
-            {data.magazine?.title} · No. {current.number}
+
+      <header className={styles.spine}>
+        <Link to={paths.desk()} className={styles.brand}>
+          <span className={styles.brandTile} aria-hidden="true">
+            <Monogram className={styles.brandGlyph} />
           </span>
-          <nav className={styles.nav} aria-label="Primary">
-            {NAV.map((item) => (
-              <Link
-                key={item.name}
-                to={item.to}
-                className={styles.navLink}
-                aria-current={route.name === item.name ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
+          <span className="visually-hidden">AMAZEEN — Desk</span>
+        </Link>
+
+        <nav className={styles.spineNav} aria-label="Primary">
+          <ol>
+            {NAV.map((item, i) => (
+              <li key={item.name}>
+                <Link to={item.to} className={styles.spineLink} aria-current={isCurrent(item)}>
+                  <span className={styles.spineIndex} aria-hidden="true">
+                    0{i + 1}
+                  </span>
+                  <span className={styles.spineLabel}>{item.label}</span>
+                </Link>
+              </li>
             ))}
-          </nav>
-          <Link to={paths.write('story')} className={styles.fileBtn}>
-            <Icon name="plus" size={16} />
-            File a piece
-          </Link>
-        </div>
+          </ol>
+        </nav>
+
+        {/* A faint watermark of the masthead; drawn by CSS so it stays decorative. */}
+        <span className={styles.spineTitle} data-text={`${masthead} · Nº ${current.number}`} aria-hidden="true" />
+
+        <p className={styles.deadline} title={`Issue No. ${current.number} goes to press in ${timeUntil(current.weekEnd, now)}`}>
+          <span className={styles.pulse} aria-hidden="true" />
+          <span className={styles.deadlineValue}>{shortCountdown(current.weekEnd, now)}</span>
+          <span className={styles.deadlineLabel}>to press</span>
+        </p>
       </header>
 
-      <StorageBanner />
-      <main id="main" className={styles.main} tabIndex={-1}>
-        {children}
-      </main>
-
-      <nav className={styles.tabbar} aria-label="Primary">
-        {NAV.slice(0, 1).map((item) => (
-          <Link key={item.name} to={item.to} className={styles.tab} aria-current={route.name === item.name ? 'page' : undefined}>
-            <Icon name={item.icon} size={20} />
-            {item.label}
-          </Link>
-        ))}
-        <Link to={paths.write('story')} className={styles.tabFile} aria-label="File a piece">
-          <Icon name="plus" size={24} />
+      <header className={styles.topbar}>
+        <Link to={paths.desk()} className={styles.topBrand}>
+          <span className={styles.brandTile} aria-hidden="true">
+            <Monogram className={styles.brandGlyph} />
+          </span>
+          <span className={styles.topTitle}>{masthead}</span>
         </Link>
-        {NAV.slice(1).map((item) => (
-          <Link key={item.name} to={item.to} className={styles.tab} aria-current={route.name === item.name ? 'page' : undefined}>
-            <Icon name={item.icon} size={20} />
-            {item.label}
-          </Link>
-        ))}
+        <span className={styles.topMeta}>
+          Nº {current.number} · {shortCountdown(current.weekEnd, now)} to press
+        </span>
+      </header>
+
+      <div className={styles.frame}>
+        <StorageBanner />
+        <main id="main" className={styles.main} tabIndex={-1}>
+          {children}
+        </main>
+      </div>
+
+      <nav className={styles.tabs} aria-label="Sections">
+        {NAV.map((item) =>
+          item.name === 'write' ? (
+            <Link key={item.name} to={item.to} className={styles.tabWrite}>
+              <Icon name="plus" size={22} />
+              <span>{item.label}</span>
+            </Link>
+          ) : (
+            <Link key={item.name} to={item.to} className={styles.tab} aria-current={isCurrent(item)}>
+              <Icon name={item.icon} size={20} />
+              <span>{item.label}</span>
+            </Link>
+          ),
+        )}
       </nav>
     </div>
   );

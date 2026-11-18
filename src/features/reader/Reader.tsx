@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
+import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import ui from '../../components/ui.module.css';
 import { formatWeekRange } from '../../domain/dates';
@@ -85,6 +86,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
   if (turn.index !== index) setTurn({ index, direction: index > turn.index ? 'forward' : 'back' });
   const direction = turn.direction;
   const [editing, setEditing] = useState(false);
+  const [jumping, setJumping] = useState(false);
   const swipe = useRef<{ x: number; y: number } | null>(null);
 
   useDocumentTitle(`No. ${issue.number} · ${issue.headline}`);
@@ -107,6 +109,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
     Home: () => go(1),
     End: () => go(pages.length),
     Escape: close,
+    g: () => setJumping(true),
   });
 
   const onPointerDown = (e: PointerEvent): void => {
@@ -138,6 +141,10 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
           </span>
         </div>
         <div className={styles.chromeActions}>
+          <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => setJumping(true)} aria-label="All pages" aria-keyshortcuts="G">
+            <Icon name="book" size={16} />
+            <span className={styles.hideSm}>Pages</span>
+          </button>
           <button type="button" className={`${ui.btn} ${ui.quiet} ${ui.small}`} onClick={() => setEditing(true)} aria-label="Edit cover">
             <Icon name="palette" size={16} />
             <span className={styles.hideSm}>Cover</span>
@@ -214,6 +221,27 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
       </div>
 
       {editing && <CoverEditor issue={issue} onClose={() => setEditing(false)} />}
+      <Dialog open={jumping} onClose={() => setJumping(false)} title={`No. ${issue.number}, page by page`}>
+        <ol className={styles.jumpGrid}>
+          {pages.map((p, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                className={styles.jumpPage}
+                data-kind={p.kind}
+                aria-current={i === index ? 'page' : undefined}
+                onClick={() => {
+                  setJumping(false);
+                  go(i + 1);
+                }}
+              >
+                <span className={styles.jumpNo}>p.{i + 1}</span>
+                <span className={styles.jumpLabel}>{pageLabel(p)}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </Dialog>
     </div>
   );
 }
