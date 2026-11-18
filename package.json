@@ -1,11 +1,11 @@
 {
   "name": "amazeen",
   "version": "1.4.0",
-  "description": "AMAZEEN \u2014 the weekly magazine of your own life.",
+  "description": "AMAZEEN — the weekly magazine of your own life.",
   "scripts": {
     "dev": "vite",
-    "dev:api": "npm run build && npm run db:local && wrangler pages dev dist --d1 DB=local-amazeen --local --port 8788 --compatibility-date=2026-11-01",
-    "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.toml --persist-to .wrangler/state",
+    "dev:api": "npm run build && npm run db:local && wrangler dev --port 8788",
+    "db:local": "wrangler d1 migrations apply DB --local",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "lint": "oxlint --deny-warnings",
@@ -35,7 +35,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
-    "@cloudflare/workers-types": "^5.20261118.1",
     "@playwright/test": "^1.65.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

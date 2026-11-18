@@ -16,24 +16,32 @@ No account, no server. Everything lives in your browser and can be exported/impo
 - **Schema changes** go through `migrate()` in `src/domain/storage.ts`, so old exports always open.
 - **Sync (optional):** Office → Sync keeps one journal across devices, **end-to-end encrypted**: the server only stores data it can't read, and you connect devices with a sync key (no email or password). Details and limits are in [`docs/sync-security.md`](docs/sync-security.md).
 
-## Deploying (Cloudflare Pages)
+## Deploying (Cloudflare Workers)
 
-1. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → choose this repo.
-2. Build settings: framework **None**, build command `npm run build`, output directory `dist`, environment variable `NODE_VERSION=24`.
-3. Production branch: `main`. Every pull request gets its own preview URL.
-4. `public/_headers` sets the CSP, HSTS and caching. Deep links like `/issue/2026-W46?p=3` work because Pages serves the app for unknown paths.
+AMAZEEN deploys as **one Cloudflare Worker**: the built app is served as static assets, and a small Worker answers `/api/*` (the sync service, backed by a D1 database). Everything is configured in [`wrangler.jsonc`](wrangler.jsonc), which is the source of truth for the deployment, including the D1 binding.
 
-### Turning on sync (optional, one-time)
+### First deploy (app only)
 
-Without this the app works fully; the Sync section will just report it can't reach the service.
+1. Cloudflare dashboard → Workers & Pages → Create → connect this GitHub repo.
+2. Build command `npm run build`; deploy command `npx wrangler deploy` (the default).
+3. The Worker's name in the dashboard must match `name` in `wrangler.jsonc` (`amazeen-app`), or Workers Builds refuses to deploy.
+4. Pushes to `main` deploy to production; other branches get a preview. `public/_headers` sets the CSP, HSTS and caching. Deep links like `/issue/2026-W46?p=3` work because unknown paths get the app (`not_found_handling`).
 
-1. **Create the database:** dashboard → Storage & databases → D1 → Create (name it `amazeen-sync`). Or `npx wrangler login && npx wrangler d1 create amazeen-sync`.
-2. **Create the tables:** open the database → Console, paste the contents of [`migrations/0001_init.sql`](migrations/0001_init.sql), run.
-3. **Bind it:** your Pages project → Settings → Bindings (Functions) → Add → D1 database → variable name **`DB`**, pick `amazeen-sync`, for both Production and Preview.
-4. **Rate-limit the API** (important, since accounts are anonymous): Security → WAF → Rate limiting rules. For example: *URI Path starts with `/api/`* → 120 requests per minute per IP; and a stricter rule for *Method equals POST and URI Path equals `/api/account`* → 5 per 10 minutes.
-5. Redeploy. Check `https://<your-site>/api/health` returns `{"ok":true}`.
+### Turning on sync (one-time)
 
-> Don't add a `wrangler.toml` to the repo: Pages would treat it as the source of truth and ignore the binding you set in the dashboard. Local development uses `wrangler.local.toml` explicitly (`npm run dev:api`).
+Without this the app works fully; the Sync section just reports it can't reach the service.
+
+1. **Create the database:** dashboard → Storage & databases → D1 → Create database, named `amazeen-sync`. (Or `npx wrangler login && npx wrangler d1 create amazeen-sync`.)
+2. **Create the tables:** open the database → Console, paste the contents of [`migrations/0001_init.sql`](migrations/0001_init.sql), and run it. Future schema changes ship as new files in `migrations/` and are applied the same way.
+3. **Tell the app which database:** copy the database's **ID** from its page and paste it into `database_id` in [`wrangler.jsonc`](wrangler.jsonc), replacing `REPLACE_WITH_YOUR_D1_DATABASE_ID`. The ID is an identifier, not a secret, so it's fine to commit. Merge to `main` and Cloudflare redeploys with the binding.
+4. **Rate-limit the API** (important, since accounts are anonymous): Security → WAF → Rate limiting rules. For example *URI Path starts with `/api/`* → 120 requests per minute per IP, and a stricter rule for *Method equals POST and URI Path equals `/api/account`* → 5 per 10 minutes.
+5. **Check:** `https://<your-site>/api/health` should return `{"ok":true}`, then try Office → Sync on two devices.
+
+> The binding can't be added in the dashboard for a Worker deployed from this repo, because the config file is the source of truth. That's why step 3 edits `wrangler.jsonc` instead.
+
+### Local development
+
+`npm run dev:api` builds the app and runs it together with the API on `http://localhost:8788`, using the same `wrangler.jsonc` and a local D1 (created from `migrations/`, kept in `.wrangler/`). The end-to-end tests run this way too, so they exercise the real routing, headers and database.
 
 ### Release checklist
 
@@ -41,7 +49,7 @@ Without this the app works fully; the Sync section will just report it can't rea
 2. Open the preview URL and spot-check the Desk, Composer, Reader and Shelf on a phone.
 3. Bump `version` in `package.json`, add a `CHANGELOG.md` entry, and merge to `main`.
 4. Verify production. Open tabs get an "A new edition of AMAZEEN is ready" prompt.
-5. To roll back, use Cloudflare Pages → Deployments → *Rollback* on the previous deploy.
+5. To roll back, open the Worker → Deployments and roll back to the previous version.
 
 ## Run it
 

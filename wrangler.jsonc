@@ -1,0 +1,24 @@
+{
+  // AMAZEEN on Cloudflare Workers: the built app is served as static assets, and a small Worker
+  // answers /api/* (the sync service, backed by D1). `name` must match the Worker's name in the
+  // dashboard, or Workers Builds will refuse to deploy.
+  "name": "amazeen-app",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Unknown paths get the app, so deep links like /issue/2026-W46?p=3 work.
+    "not_found_handling": "single-page-application",
+    // Only the API runs the Worker; everything else is served straight from the assets.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "amazeen-sync",
+      // Paste the ID of your D1 database (dashboard → Storage & databases → D1 → amazeen-sync).
+      // It's an identifier, not a secret, so it's fine to commit.
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ]
+}
