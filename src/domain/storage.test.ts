@@ -7,7 +7,8 @@ import { createIdbAdapter, createMemoryAdapter, migrate, MIRROR_STAMP_KEY, parse
 import type { AppData } from './types';
 
 const sample = (): AppData => ({
-  version: 1,
+  version: 2,
+  tombstones: {},
   magazine: { title: 'Mine', editor: 'Me', createdAt: '2026-01-01T00:00:00.000Z' },
   entries: [createEntry({ kind: 'note', body: 'hello idb' }, { section: 'life', mood: 4, starred: false })],
   overrides: {},
@@ -49,7 +50,7 @@ describe('IndexedDB adapter', () => {
     });
     await new Promise<void>((resolve) => {
       const tx = db.transaction('kv', 'readwrite');
-      tx.objectStore('kv').put({ version: 1, entries: 'nope' }, 'data');
+      tx.objectStore('kv').put({ version: 2, entries: 'nope' }, 'data');
       tx.addEventListener('complete', () => resolve());
     });
     const outcome = await createIdbAdapter({ factory, legacy: undefined }).load();
@@ -109,20 +110,21 @@ describe('IndexedDB adapter', () => {
   });
 
   it('memory adapter detects corruption', async () => {
-    expect((await createMemoryAdapter({ version: 1, entries: 5 }).load()).status).toBe('corrupt');
+    expect((await createMemoryAdapter({ version: 2, entries: 5 }).load()).status).toBe('corrupt');
   });
 });
 
 describe('schema migration', () => {
   it('passes current documents through and leaves non-objects for validation to reject', () => {
-    const doc = { version: 1, entries: [] };
+    const doc = { version: 2, entries: [] };
     expect(migrate(doc)).toBe(doc);
+    expect(migrate({ version: 1, entries: [] })).toEqual({ version: 2, entries: [], tombstones: {} });
     expect(migrate('text')).toBe('text');
     expect(() => parseAppData({ version: 0, entries: [] })).toThrow(/unsupported version/);
   });
 
   it('rejects arbitrary junk without throwing anything but DataFormatError', () => {
-    const junk: unknown[] = [null, 42, 'x', [], { version: 1 }, { version: 1, entries: {} }, { version: 1, entries: [null, 1, 'a', {}] }];
+    const junk: unknown[] = [null, 42, 'x', [], { version: 2 }, { version: 2, entries: {} }, { version: 2, entries: [null, 1, 'a', {}] }, { version: 1, entries: [null] }];
     const outcomes = junk.map((value) => {
       try {
         return parseAppData(value).data.entries.length === 0 ? 'empty' : 'entries';

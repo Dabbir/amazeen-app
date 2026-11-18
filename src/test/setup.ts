@@ -4,5 +4,6 @@ import { cleanup } from '@testing-library/react';
 
 afterEach(() => {
   cleanup();
-  localStorage.clear();
+  // Sync tests run in a plain Node environment (real Web Crypto), where there is no localStorage.
+  if (typeof localStorage !== 'undefined') localStorage.clear();
 });

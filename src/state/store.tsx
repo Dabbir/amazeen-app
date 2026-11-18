@@ -28,6 +28,8 @@ export interface Store {
   toggleStar: (id: string) => void;
   setOverride: (key: string, override: IssueOverride | null) => void;
   replaceData: (data: AppData) => void;
+  /** Apply records that arrived from another device. */
+  mergeRemote: (incoming: AppData) => void;
   markExported: () => void;
   /** Permanently remove the archive, legacy copies and drafts from this browser. */
   eraseAll: () => Promise<void>;
@@ -137,7 +139,7 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
   const deleteEntry = useCallback(
     (id: string) => {
       const existing = latest.current.entries.find((e) => e.id === id);
-      act({ type: 'entry/delete', id });
+      act({ type: 'entry/delete', id, at: new Date().toISOString() });
       return existing;
     },
     [act],
@@ -166,13 +168,14 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
       loadStatus: boot.status,
       saveStatus,
       storageKind: adapter.kind,
-      setMagazine: (magazine) => act({ type: 'magazine/set', magazine }),
+      setMagazine: (magazine) => act({ type: 'magazine/set', magazine, at: new Date().toISOString() }),
       addEntry: (entry) => act({ type: 'entry/add', entry }),
       updateEntry: (entry) => act({ type: 'entry/update', entry }),
       deleteEntry,
       toggleStar: (id) => act({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
-      setOverride: (key, override) => act({ type: 'override/set', key, override }),
-      replaceData: (next) => act({ type: 'data/replace', data: next }),
+      setOverride: (key, override) => act({ type: 'override/set', key, override, at: new Date().toISOString() }),
+      replaceData: (next) => act({ type: 'data/replaceAll', data: next, at: new Date().toISOString() }),
+      mergeRemote: (incoming) => act({ type: 'data/mergeRemote', incoming }),
       markExported: () => act({ type: 'backup/exported', at: new Date().toISOString() }),
       eraseAll,
       readRawArchive: () => adapter.readRaw(),

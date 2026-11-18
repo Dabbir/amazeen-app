@@ -241,3 +241,21 @@
     display: none;
   }
 }
+
+
+.restore {
+  justify-self: start;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--step-0);
+  color: var(--ink-2);
+  transition: color 160ms;
+}
+
+.restore:hover {
+  color: var(--ink);
+}

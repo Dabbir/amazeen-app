@@ -145,3 +145,15 @@ export function filingDate(now: Date, daysAgo: number): Date {
 export function daysSoFarThisWeek(now: Date): Date[] {
   return Array.from({ length: weekdayIndex(now) + 1 }, (_, i) => startOfDay(addDays(now, -i)));
 }
+
+/** "just now", "5 minutes ago", "3 hours ago", "yesterday", "4 days ago". */
+export function timeAgo(from: Date, now: Date): string {
+  const seconds = Math.max(0, Math.round((now.getTime() - from.getTime()) / 1000));
+  if (seconds < 45) return 'just now';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return minutes === 1 ? 'a minute ago' : `${minutes} minutes ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return hours === 1 ? 'an hour ago' : `${hours} hours ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}

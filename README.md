@@ -14,14 +14,26 @@ No account, no server. Everything lives in your browser and can be exported/impo
 - The app asks the browser for **persistent storage**, and installing it as a PWA makes eviction far less likely.
 - **Backups:** Settings → Export downloads a JSON archive. The Desk reminds you when there are un-exported changes older than 14 days. Import previews the file, then merges (newest edit wins) or replaces.
 - **Schema changes** go through `migrate()` in `src/domain/storage.ts`, so old exports always open.
+- **Sync (optional):** Office → Sync keeps one journal across devices, **end-to-end encrypted**: the server only stores data it can't read, and you connect devices with a sync key (no email or password). Details and limits are in [`docs/sync-security.md`](docs/sync-security.md).
 
 ## Deploying (Cloudflare Pages)
 
 1. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → choose this repo.
 2. Build settings: framework **None**, build command `npm run build`, output directory `dist`, environment variable `NODE_VERSION=24`.
 3. Production branch: `main`. Every pull request gets its own preview URL.
-4. `public/_headers` sets the CSP, HSTS and caching. Cloudflare Pages serves `index.html` for unknown paths automatically (SPA mode), so deep links like `/issue/2026-W46?p=3` work.
-5. Optional: GitHub → Settings → Branches → protect `main` and require the **CI** checks.
+4. `public/_headers` sets the CSP, HSTS and caching. Deep links like `/issue/2026-W46?p=3` work because Pages serves the app for unknown paths.
+
+### Turning on sync (optional, one-time)
+
+Without this the app works fully; the Sync section will just report it can't reach the service.
+
+1. **Create the database:** dashboard → Storage & databases → D1 → Create (name it `amazeen-sync`). Or `npx wrangler login && npx wrangler d1 create amazeen-sync`.
+2. **Create the tables:** open the database → Console, paste the contents of [`migrations/0001_init.sql`](migrations/0001_init.sql), run.
+3. **Bind it:** your Pages project → Settings → Bindings (Functions) → Add → D1 database → variable name **`DB`**, pick `amazeen-sync`, for both Production and Preview.
+4. **Rate-limit the API** (important, since accounts are anonymous): Security → WAF → Rate limiting rules. For example: *URI Path starts with `/api/`* → 120 requests per minute per IP; and a stricter rule for *Method equals POST and URI Path equals `/api/account`* → 5 per 10 minutes.
+5. Redeploy. Check `https://<your-site>/api/health` returns `{"ok":true}`.
+
+> Don't add a `wrangler.toml` to the repo: Pages would treat it as the source of truth and ignore the binding you set in the dashboard. Local development uses `wrangler.local.toml` explicitly (`npm run dev:api`).
 
 ### Release checklist
 
@@ -40,6 +52,7 @@ npm run lint       # oxlint (zero warnings allowed)
 npm test           # unit + integration tests (Vitest + Testing Library)
 npm run test:e2e   # Playwright against the production build, with axe accessibility audits
 npm run build      # typecheck + production build (PWA) to dist/
+npm run dev:api    # build, then run the app AND the sync API locally on :8788 (Cloudflare's runtime + a local D1)
 ```
 
 ## The product

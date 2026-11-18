@@ -14,7 +14,8 @@ import { StoreProvider, useStore } from './state/store';
 
 function seed(data: Partial<AppData> = {}): void {
   const full: AppData = {
-    version: 1,
+    version: 2,
+    tombstones: {},
     magazine: { title: 'Test Weekly', editor: 'Ada Lovelace', createdAt: new Date().toISOString() },
     entries: [],
     overrides: {},
@@ -46,7 +47,7 @@ describe('router', () => {
 });
 
 describe('reducer', () => {
-  const base: AppData = { version: 1, magazine: null, entries: [], overrides: {} };
+  const base: AppData = { version: 2, magazine: null, entries: [], tombstones: {}, overrides: {} };
   const entry = createEntry({ kind: 'note', body: 'hello' }, { section: 'life', mood: 3, starred: false });
 
   it('adds idempotently, toggles stars and removes entries', () => {
@@ -55,14 +56,14 @@ describe('reducer', () => {
     expect(s.entries).toHaveLength(1);
     s = reducer(s, { type: 'entry/toggleStar', id: entry.id, now: '2030-01-01T00:00:00.000Z' });
     expect(s.entries[0]).toMatchObject({ starred: true, updatedAt: '2030-01-01T00:00:00.000Z' });
-    s = reducer(s, { type: 'entry/delete', id: entry.id });
+    s = reducer(s, { type: 'entry/delete', id: entry.id, at: '2030-01-02T00:00:00.000Z' });
     expect(s.entries).toHaveLength(0);
   });
 
   it('sets and clears cover overrides', () => {
-    let s = reducer(base, { type: 'override/set', key: '2026-W47', override: { ink: 'pink' } });
+    let s = reducer(base, { type: 'override/set', key: '2026-W47', override: { ink: 'pink' }, at: '2030-01-01T00:00:00.000Z' });
     expect(s.overrides).toEqual({ '2026-W47': { ink: 'pink' } });
-    s = reducer(s, { type: 'override/set', key: '2026-W47', override: null });
+    s = reducer(s, { type: 'override/set', key: '2026-W47', override: null, at: '2030-01-01T00:00:00.000Z' });
     expect(s.overrides).toEqual({});
   });
 });
@@ -220,7 +221,7 @@ describe('audit regressions', () => {
   });
 
   it('#4 keeps two tabs in sync instead of letting one overwrite the other', async () => {
-    const adapter = createMemoryAdapter({ version: 1, magazine: null, entries: [], overrides: {} });
+    const adapter = createMemoryAdapter({ version: 2, magazine: null, entries: [], tombstones: {}, overrides: {} });
     function Probe({ label }: { label: string }) {
       const store = useStore();
       return (

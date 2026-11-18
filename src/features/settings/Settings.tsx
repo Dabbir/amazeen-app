@@ -19,6 +19,8 @@ import { useDocumentTitle } from '../../state/hooks';
 import { useNow } from '../../state/now';
 import { Link, paths } from '../../router/router';
 import { useStore } from '../../state/store';
+import { useSync } from '../../sync/SyncProvider';
+import { SyncSection } from '../sync/SyncSection';
 import { useExportArchive } from '../../state/useExportArchive';
 import styles from './Settings.module.css';
 
@@ -167,6 +169,7 @@ export default function Settings() {
   const { data, replaceData, eraseAll, readRawArchive, loadStatus, storageKind } = useStore();
   const toast = useToast();
   const exportArchive = useExportArchive();
+  const sync = useSync();
   const now = useNow();
   const [persisted, setPersisted] = useState<boolean | null>(null);
   useEffect(() => {
@@ -270,6 +273,8 @@ export default function Settings() {
 
       <AppearanceSection />
 
+      <SyncSection />
+
       <section className={styles.section} aria-labelledby="s-archive">
         <div className={styles.sectionIntro}>
           <h2 id="s-archive">Archive</h2>
@@ -365,7 +370,7 @@ export default function Settings() {
       <section className={`${styles.section} ${styles.danger}`} aria-labelledby="s-danger">
         <div className={styles.sectionIntro}>
           <h2 id="s-danger">Stop the presses</h2>
-          <p>Permanently erase every issue, piece and setting from this browser.</p>
+          <p>Permanently erase every issue, piece and setting from this browser. If sync is on, this device disconnects; the cloud copy stays until you delete it in Sync.</p>
         </div>
         <div>
           <button type="button" className={`${ui.btn} ${ui.danger}`} onClick={() => setErasing(true)}>
@@ -494,7 +499,8 @@ export default function Settings() {
               onClick={() => {
                 // Keep the dialog up until storage has actually been wiped.
                 setWiping(true);
-                void eraseAll().catch(() => {
+                // Erasing this device must not be undone by the cloud copy pulling everything back.
+                void sync.disconnect().then(eraseAll).catch(() => {
                   setWiping(false);
                   toast.push({ tone: 'error', message: 'Couldn’t erase everything. Please try again.' });
                 });

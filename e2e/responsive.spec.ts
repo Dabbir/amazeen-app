@@ -79,6 +79,33 @@ test.describe('responsive & readable', () => {
   }
 });
 
+const CLEAN = { docOverflow: 0, overflow: [], smallText: [], smallTargets: [] };
+const pick = (f: Awaited<ReturnType<typeof audit>>) => ({ docOverflow: f.docOverflow, overflow: f.overflow, smallText: f.smallText, smallTargets: f.smallTargets });
+
+test.describe('sync dialogs stay readable at every width', () => {
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
+  for (const width of WIDTHS) {
+    test(`join and key dialogs at ${width}px`, async ({ page }, info) => {
+      test.skip(info.project.name !== 'desktop-chrome', 'viewports are set explicitly; one project is enough');
+      await page.setViewportSize({ width, height: width < 800 ? 780 : 900 });
+      await onboard(page, { sample: true, title: 'The Sunday Correspondent' });
+      await page.goto('/settings');
+
+      await page.getByRole('button', { name: 'Connect to your journal' }).click();
+      await page.getByRole('dialog').waitFor();
+      await page.getByLabel('Sync key').fill('ABCD-EFGH-IJKL');
+      await page.getByRole('button', { name: 'Connect', exact: true }).click();
+      await page.getByRole('alert').waitFor();
+      expect.soft(pick(await audit(page)), `join dialog at ${width}px`).toEqual(CLEAN);
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: 'Turn on sync' }).click();
+      await page.getByTestId('sync-key').waitFor();
+      expect.soft(pick(await audit(page)), `key dialog at ${width}px`).toEqual(CLEAN);
+    });
+  }
+});
+
 test('the edition lamp: pulling the cord switches, a short tug does not', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-chrome', 'pointer drag on the spine lamp');
   await page.setViewportSize({ width: 1280, height: 860 });
