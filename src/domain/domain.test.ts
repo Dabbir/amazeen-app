@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { daysSoFarThisWeek, endOfWeek, filingDate, formatWeekRange, isoWeek, startOfWeek, timeUntil, toRoman, weekKey, weekKeyToDate } from './dates';
 import { createEntry, emptyDraft, isDraftBlank, normalizeDraft, parseEntry, updateEntry, validateDraft } from './entries';
+import { reducer } from '../state/reducer';
 import { backupStatus, mergeData, summarize } from './backup';
 import { compileIssues, pickCoverStory, pressCheck, weeklyStreak } from './issues';
 import { contentsFor, flatplan, layoutIssue } from './layout';
@@ -211,7 +212,7 @@ describe('search', () => {
 
 describe('storage', () => {
   it('round-trips data and recovers from corruption without throwing', () => {
-    const data = { version: 1 as const, magazine: { title: 'Mine', editor: 'Me', createdAt: new Date().toISOString() }, entries: sampleEntries(), overrides: {} };
+    const data = { version: 2 as const, magazine: { title: 'Mine', editor: 'Me', createdAt: new Date().toISOString() }, entries: sampleEntries(), tombstones: {}, overrides: {} };
     expect(saveData(data)).toEqual({ ok: true });
     const loaded = loadData();
     expect(loaded.status).toBe('ok');
@@ -225,9 +226,9 @@ describe('storage', () => {
 
   it('rejects foreign files and skips invalid or duplicate entries', () => {
     expect(() => parseAppData({ hello: 'world' })).toThrow(DataFormatError);
-    expect(() => parseAppData({ version: 2, entries: [] })).toThrow(DataFormatError);
+    expect(() => parseAppData({ version: 3, entries: [] })).toThrow(DataFormatError);
     const good = note('ok', new Date());
-    const result = parseAppData({ version: 1, entries: [good, good, { junk: true }], overrides: { bad: { ink: 'pink' }, '2026-W47': { ink: 'nope', headline: '  Hi ' } } });
+    const result = parseAppData({ version: 2, entries: [good, good, { junk: true }], overrides: { bad: { ink: 'pink' }, '2026-W47': { ink: 'nope', headline: '  Hi ' } } });
     expect(result.data.entries).toHaveLength(1);
     expect(result.skipped).toBe(2);
     expect(result.data.overrides).toEqual({ '2026-W47': { headline: 'Hi' } });
@@ -281,9 +282,10 @@ describe('backups (phase 2)', () => {
   const now = new Date(2026, 10, 18, 12);
   const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
   const data = (entries: Entry[], lastExportedAt?: string) => ({
-    version: 1 as const,
+    version: 2 as const,
     magazine: null,
     entries,
+    tombstones: {},
     overrides: {},
     ...(lastExportedAt ? { lastExportedAt } : {}),
   });
@@ -323,8 +325,8 @@ describe('backups (phase 2)', () => {
 
   it('round-trips lastExportedAt through validation', () => {
     const at = daysAgo(3).toISOString();
-    expect(parseAppData({ version: 1, entries: [], lastExportedAt: at }).data.lastExportedAt).toBe(at);
-    expect(parseAppData({ version: 1, entries: [], lastExportedAt: 'nonsense' }).data.lastExportedAt).toBeUndefined();
+    expect(parseAppData({ version: 2, entries: [], lastExportedAt: at }).data.lastExportedAt).toBe(at);
+    expect(parseAppData({ version: 2, entries: [], lastExportedAt: 'nonsense' }).data.lastExportedAt).toBeUndefined();
   });
 });
 
@@ -347,5 +349,93 @@ describe('flatplan', () => {
     expect(plan.map((s) => (s.status === 'set' ? `${s.page.kind}@${s.number}` : `+${s.kind}`))).toEqual([
       'cover@1', 'contents@2', '+feature', 'dispatches@3', '+overheard', 'numbers@4', 'back@5',
     ]);
+  });
+});
+
+
+describe('deletions travel (tombstones)', () => {
+  const T = (n: number) => new Date(2026, 10, 10 + n, 12).toISOString();
+  const empty = { version: 2 as const, magazine: null, entries: [] as Entry[], tombstones: {} as Record<string, string>, overrides: {} };
+  const withEntry = (e: Entry) => ({ ...empty, entries: [e] });
+  const made = (id: string, at: string) => createEntry({ kind: 'note', body: id }, META, new Date(at), id);
+
+  it('a deletion beats an older copy of the entry, from either side', () => {
+    const e = made('a', T(0));
+    const deletedElsewhere = { ...empty, tombstones: { a: T(1) } };
+    const r = mergeData(withEntry(e), deletedElsewhere, { meta: 'newest' });
+    expect(r.data.entries).toEqual([]);
+    expect(r.data.tombstones).toEqual({ a: T(1) });
+    expect(r.removed).toBe(1);
+
+    // …and the reverse: I deleted it here, the other device still has the old copy.
+    const r2 = mergeData(deletedElsewhere, withEntry(e), { meta: 'newest' });
+    expect(r2.data.entries).toEqual([]);
+    expect(r2.data.tombstones).toEqual({ a: T(1) });
+  });
+
+  it('an edit made after the deletion brings the entry back, and the tombstone goes away', () => {
+    const edited = made('a', T(2));
+    const r = mergeData({ ...empty, tombstones: { a: T(1) } }, withEntry(edited));
+    expect(r.data.entries.map((x) => x.id)).toEqual(['a']);
+    expect(r.data.tombstones).toEqual({});
+    expect(r.added).toBe(1);
+  });
+
+  it('on an exact tie the entry survives', () => {
+    const r = mergeData(withEntry(made('a', T(1))), { ...empty, tombstones: { a: T(1) } });
+    expect(r.data.entries).toHaveLength(1);
+  });
+
+  it('undo (re-adding a deleted entry) is strictly newer than the deletion', () => {
+    const e = made('a', T(0));
+    let s = reducer(withEntry(e), { type: 'entry/delete', id: 'a', at: T(3) });
+    expect(s.tombstones).toEqual({ a: T(3) });
+    s = reducer(s, { type: 'entry/add', entry: e }); // an old updatedAt on purpose
+    expect(s.tombstones).toEqual({});
+    expect((s.entries[0]?.updatedAt ?? '') > T(3)).toBe(true);
+    // so a device that saw the deletion accepts the restore
+    expect(mergeData({ ...empty, tombstones: { a: T(3) } }, s).data.entries).toHaveLength(1);
+  });
+
+  it('masthead and covers: newest side wins when syncing, my masthead stays when importing', () => {
+    const mine = { ...empty, magazine: { title: 'Mine', editor: 'Me', createdAt: T(0) }, overrides: { '2026-W47': { ink: 'pink' as const } }, metaUpdatedAt: T(1) };
+    const theirs = { ...empty, magazine: { title: 'Theirs', editor: 'You', createdAt: T(0) }, overrides: { '2026-W46': { ink: 'blue' as const } }, metaUpdatedAt: T(2) };
+    const synced = mergeData(mine, theirs, { meta: 'newest' }).data;
+    expect(synced.magazine?.title).toBe('Theirs');
+    expect(synced.overrides).toEqual({ '2026-W46': { ink: 'blue' } });
+    expect(mergeData(theirs, mine, { meta: 'newest' }).data.magazine?.title).toBe('Theirs');
+    const imported = mergeData(mine, theirs).data;
+    expect(imported.magazine?.title).toBe('Mine');
+    expect(imported.overrides).toEqual({ '2026-W47': { ink: 'pink' }, '2026-W46': { ink: 'blue' } });
+  });
+
+  it('merging is order-independent for entries (convergence)', () => {
+    const a = { ...empty, entries: [made('x', T(1)), made('y', T(1))], tombstones: { z: T(2) } };
+    const b = { ...empty, entries: [made('z', T(1)), { ...made('y', T(1)), body: 'y2', updatedAt: T(3) } as Entry], tombstones: { x: T(2) } };
+    const ab = mergeData(a, b, { meta: 'newest' }).data;
+    const ba = mergeData(b, a, { meta: 'newest' }).data;
+    const norm = (d: typeof ab) => ({ entries: d.entries.map((e) => `${e.id}@${e.updatedAt}`).toSorted(), tombstones: d.tombstones });
+    expect(norm(ab)).toEqual(norm(ba));
+    expect(norm(ab).entries).toEqual([`y@${T(3)}`]);
+  });
+});
+
+describe('schema v1 → v2', () => {
+  it('opens a v1 archive and adds an empty tombstone list', () => {
+    const good = note('legacy', new Date());
+    const { data } = parseAppData({ version: 1, entries: [good], overrides: {} });
+    expect(data.version).toBe(2);
+    expect(data.tombstones).toEqual({});
+    expect(data.entries).toHaveLength(1);
+  });
+
+  it('keeps valid tombstones, drops junk, and lets a live entry supersede its tombstone', () => {
+    const good = note('live', new Date());
+    const { data } = parseAppData({
+      version: 2,
+      entries: [good],
+      tombstones: { gone: '2026-01-02T00:00:00.000Z', [good.id]: '2026-01-02T00:00:00.000Z', bad: 'yesterday', '': '2026-01-01T00:00:00.000Z', [`${'x'.repeat(65)}`]: '2026-01-01T00:00:00.000Z' },
+    });
+    expect(data.tombstones).toEqual({ gone: '2026-01-02T00:00:00.000Z' });
   });
 });

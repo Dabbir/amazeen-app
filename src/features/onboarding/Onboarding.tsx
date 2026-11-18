@@ -45,9 +45,10 @@ export function Onboarding() {
       return;
     }
     replaceData({
-      version: 1,
+      version: 2,
       magazine: { title: clean, editor: editor.trim() || 'The Editor', createdAt: new Date().toISOString() },
       entries: withSample ? sampleEntries() : [],
+      tombstones: {},
       overrides: {},
     });
   };

@@ -137,7 +137,7 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
   const deleteEntry = useCallback(
     (id: string) => {
       const existing = latest.current.entries.find((e) => e.id === id);
-      act({ type: 'entry/delete', id });
+      act({ type: 'entry/delete', id, at: new Date().toISOString() });
       return existing;
     },
     [act],
@@ -166,12 +166,12 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
       loadStatus: boot.status,
       saveStatus,
       storageKind: adapter.kind,
-      setMagazine: (magazine) => act({ type: 'magazine/set', magazine }),
+      setMagazine: (magazine) => act({ type: 'magazine/set', magazine, at: new Date().toISOString() }),
       addEntry: (entry) => act({ type: 'entry/add', entry }),
       updateEntry: (entry) => act({ type: 'entry/update', entry }),
       deleteEntry,
       toggleStar: (id) => act({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
-      setOverride: (key, override) => act({ type: 'override/set', key, override }),
+      setOverride: (key, override) => act({ type: 'override/set', key, override, at: new Date().toISOString() }),
       replaceData: (next) => act({ type: 'data/replace', data: next }),
       markExported: () => act({ type: 'backup/exported', at: new Date().toISOString() }),
       eraseAll,
