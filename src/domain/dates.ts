@@ -131,3 +131,17 @@ export function toRoman(n: number): string {
   }
   return out;
 }
+
+/**
+ * Filing date for a piece written `daysAgo` days ago, constrained to the current week
+ * (you can catch up on this issue, but not rewrite a printed one). Keeps the time of day.
+ */
+export function filingDate(now: Date, daysAgo: number): Date {
+  const allowed = Math.min(Math.max(0, Math.floor(daysAgo)), weekdayIndex(now));
+  return addDays(now, -allowed);
+}
+
+/** Days of the current week up to and including today, newest first: [today, yesterday, …, Monday]. */
+export function daysSoFarThisWeek(now: Date): Date[] {
+  return Array.from({ length: weekdayIndex(now) + 1 }, (_, i) => startOfDay(addDays(now, -i)));
+}

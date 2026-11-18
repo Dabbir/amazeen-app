@@ -85,8 +85,15 @@ export function parseAppData(input: unknown): ParseResult {
     seen.add(entry.id);
     entries.push(entry);
   }
+  const lastExportedAt = typeof v.lastExportedAt === 'string' && !Number.isNaN(Date.parse(v.lastExportedAt)) ? v.lastExportedAt : null;
   return {
-    data: { version: 1, magazine: parseMagazine(v.magazine), entries, overrides: parseOverrides(v.overrides) },
+    data: {
+      version: 1,
+      magazine: parseMagazine(v.magazine),
+      entries,
+      overrides: parseOverrides(v.overrides),
+      ...(lastExportedAt ? { lastExportedAt } : {}),
+    },
     skipped,
   };
 }

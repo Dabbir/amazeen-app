@@ -5,7 +5,7 @@ import { Icon } from '../../components/Icon';
 import { useToast } from '../../components/Toast';
 import ui from '../../components/ui.module.css';
 import { KIND_INFO } from '../../domain/catalog';
-import { formatDayMonth, weekKey } from '../../domain/dates';
+import { daysSoFarThisWeek, filingDate, formatDayMonth, formatWeekday, weekKey } from '../../domain/dates';
 import {
   createEntry,
   draftFromEntry,
@@ -21,6 +21,7 @@ import { ENTRY_KINDS } from '../../domain/types';
 import type { Entry, EntryDraft, EntryKind, EntryMeta } from '../../domain/types';
 import { paths, useRouter } from '../../router/router';
 import { prefersReducedMotion, useDocumentTitle } from '../../state/hooks';
+import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
 import { NotFound } from '../NotFound';
 import { clearDraft, loadDraft, saveDraft } from '../../state/drafts';
@@ -78,6 +79,9 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
   const [stamping, setStamping] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [attempt, setAttempt] = useState(0);
+  // Catching up: a new piece can be dated earlier in the current week.
+  const clock = useNow();
+  const [daysAgo, setDaysAgo] = useState(0);
 
   // After a failed submit, move focus to the first invalid field (runs once errors are in the DOM).
   useEffect(() => {
@@ -165,7 +169,7 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
       return;
     }
 
-    const entry = createEntry(draft, meta, now);
+    const entry = createEntry(draft, meta, filingDate(now, daysAgo));
     store.addEntry(entry);
     clearDraft(kind);
     const key = weekKey(now);
@@ -194,6 +198,8 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
       leave();
     }
   };
+
+  const filingOptions = daysSoFarThisWeek(clock);
 
   const issueLabel = existing
     ? `No. ${store.issueForEntry(existing)?.number ?? '?'} · filed ${formatDayMonth(new Date(existing.createdAt))}`
@@ -262,6 +268,21 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
             <span>{KIND_INFO[kind].label}</span>
             <span aria-hidden="true">·</span>
             <span>{issueLabel}</span>
+            {!existing && filingOptions.length > 1 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <label className={styles.when}>
+                  <span className="visually-hidden">Filed on</span>
+                  <select value={daysAgo} onChange={(e) => setDaysAgo(Number(e.target.value))}>
+                    {filingOptions.map((day, i) => (
+                      <option key={day.getTime()} value={i}>
+                        {i === 0 ? 'Today' : i === 1 ? 'Yesterday' : formatWeekday(day)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
           </p>
           <DraftFields draft={draft} errors={visibleErrors} onChange={setDraft} autoFocus={!existing} />
         </div>

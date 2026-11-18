@@ -28,6 +28,7 @@ export interface Store {
   toggleStar: (id: string) => void;
   setOverride: (key: string, override: IssueOverride | null) => void;
   replaceData: (data: AppData) => void;
+  markExported: () => void;
   /** Permanently remove the archive, legacy copies and drafts from this browser. */
   eraseAll: () => Promise<void>;
   /** Raw stored text, for rescue downloads when the archive can't be parsed. */
@@ -172,6 +173,7 @@ export function StoreProvider({ children, fallback = null, adapter: adapterProp 
       toggleStar: (id) => act({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
       setOverride: (key, override) => act({ type: 'override/set', key, override }),
       replaceData: (next) => act({ type: 'data/replace', data: next }),
+      markExported: () => act({ type: 'backup/exported', at: new Date().toISOString() }),
       eraseAll,
       readRawArchive: () => adapter.readRaw(),
       findIssue,

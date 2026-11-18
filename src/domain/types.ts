@@ -87,6 +87,8 @@ export interface AppData {
   readonly entries: readonly Entry[];
   /** Per-issue cover customisation, keyed by week key (e.g. `2026-W47`). */
   readonly overrides: Readonly<Record<string, IssueOverride>>;
+  /** When the archive was last exported (drives the backup reminder). */
+  readonly lastExportedAt?: string;
 }
 
 export type IssueStatus = 'in-production' | 'published';

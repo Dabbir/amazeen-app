@@ -575,3 +575,20 @@
     width: 100%;
   }
 }
+
+.when select {
+  appearance: none;
+  border: 0;
+  border-bottom: 1.5px dotted currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.when select:focus-visible {
+  outline: 2px solid var(--press);
+  outline-offset: 3px;
+}

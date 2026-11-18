@@ -8,6 +8,7 @@ export type Action =
   | { type: 'entry/toggleStar'; id: string; now: string }
   | { type: 'override/set'; key: string; override: IssueOverride | null }
   | { type: 'data/replace'; data: AppData }
+  | { type: 'backup/exported'; at: string }
   | { type: 'data/reset' };
 
 export function reducer(state: AppData, action: Action): AppData {
@@ -32,6 +33,8 @@ export function reducer(state: AppData, action: Action): AppData {
     }
     case 'data/replace':
       return action.data;
+    case 'backup/exported':
+      return { ...state, lastExportedAt: action.at };
     case 'data/reset':
       return { version: 1, magazine: null, entries: [], overrides: {} };
   }

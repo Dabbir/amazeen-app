@@ -11,6 +11,7 @@ import { Link, paths } from '../../router/router';
 import { useDocumentTitle } from '../../state/hooks';
 import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
+import { BackupReminder } from './BackupReminder';
 import { EntryRow } from './EntryRow';
 import styles from './Desk.module.css';
 
@@ -67,6 +68,8 @@ export function Desk() {
           <span className={styles.pulse} aria-hidden="true" /> Goes to press in {timeUntil(current.weekEnd, now)}
         </span>
       </div>
+
+      <BackupReminder />
 
       <section className={styles.hero} aria-labelledby="desk-heading">
         <div className={styles.heroCopy}>
