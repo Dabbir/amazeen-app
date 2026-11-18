@@ -4,7 +4,7 @@ import { onboard, expectAccessible } from './helpers';
 
 /**
  * Two separate browser contexts stand in for two devices (separate storage, nothing shared but the
- * server and the sync key). Runs against the real Pages Function with a real D1 database.
+ * server and the sync key). Runs against the real Worker (the same wrangler.jsonc as production) with a real D1 database.
  */
 test.beforeEach(({ browserName }, info) => {
   test.skip(info.project.name !== 'desktop-chrome' || browserName !== 'chromium', 'two-device flows run once, in desktop Chrome');

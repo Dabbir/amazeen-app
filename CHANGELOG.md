@@ -11,7 +11,7 @@ All notable changes to AMAZEEN. Versions follow [semver](https://semver.org).
 - **No email or password:** the key is the only secret. Losing it means the cloud copy can't be recovered, which the app says clearly.
 - **Correct merging:** the newest change wins per entry; deletions travel as tombstones so an offline device can't bring a deleted piece back; Undo restores everywhere. Replacing the archive (import, sample) records what it drops.
 - **Stays local-first:** writing never waits for the network. Sync runs after changes, when the tab returns, when the network comes back, and each minute; the status light shows synced / syncing / offline / needs attention.
-- **Backend:** a Cloudflare Pages Function with a D1 database (`migrations/0001_init.sql`), same origin as the app. Setup steps are in the README.
+- **Backend:** a Cloudflare Worker with a D1 database (`migrations/0001_init.sql`), same origin as the app: the built app is served as static assets and only `/api/*` runs the Worker. Configured in `wrangler.jsonc`; setup steps are in the README.
 - **Schema v2:** archives gain `tombstones`; v1 files and saved data migrate automatically.
 - **Security headers verified for real:** the whole e2e suite now runs on Cloudflare's local runtime with the real `_headers`, which caught and fixed three problems: a CSP directive that broke WebKit on localhost, fonts inlined as `data:` URIs that the CSP blocked, and a removed Permissions-Policy feature.
 - **Privacy page** updated to describe sync honestly.

@@ -20,9 +20,9 @@
   },
   "include": [
     "e2e",
-    "functions",
     "playwright.config.ts",
     "server-tests",
-    "vite.config.ts"
+    "vite.config.ts",
+    "worker"
   ]
 }
