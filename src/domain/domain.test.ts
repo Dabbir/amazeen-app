@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysSoFarThisWeek, endOfWeek, filingDate, formatWeekRange, isoWeek, startOfWeek, timeUntil, toRoman, weekKey, weekKeyToDate } from './dates';
+import { daysSoFarThisWeek, endOfWeek, filingDate, formatWeekRange, isoWeek, startOfWeek, timeAgo, timeUntil, toRoman, weekKey, weekKeyToDate } from './dates';
 import { createEntry, emptyDraft, isDraftBlank, normalizeDraft, parseEntry, updateEntry, validateDraft } from './entries';
 import { reducer } from '../state/reducer';
 import { backupStatus, mergeData, summarize } from './backup';
@@ -437,5 +437,20 @@ describe('schema v1 → v2', () => {
       tombstones: { gone: '2026-01-02T00:00:00.000Z', [good.id]: '2026-01-02T00:00:00.000Z', bad: 'yesterday', '': '2026-01-01T00:00:00.000Z', [`${'x'.repeat(65)}`]: '2026-01-01T00:00:00.000Z' },
     });
     expect(data.tombstones).toEqual({ gone: '2026-01-02T00:00:00.000Z' });
+  });
+});
+
+describe('timeAgo', () => {
+  const now = new Date(2026, 10, 18, 12, 0, 0);
+  const ago = (ms: number) => timeAgo(new Date(now.getTime() - ms), now);
+  it('reads naturally at every scale', () => {
+    expect(ago(10_000)).toBe('just now');
+    expect(ago(60_000)).toBe('a minute ago');
+    expect(ago(5 * 60_000)).toBe('5 minutes ago');
+    expect(ago(60 * 60_000)).toBe('an hour ago');
+    expect(ago(3 * 3_600_000)).toBe('3 hours ago');
+    expect(ago(30 * 3_600_000)).toBe('yesterday');
+    expect(ago(4 * 86_400_000)).toBe('4 days ago');
+    expect(timeAgo(new Date(now.getTime() + 5000), now)).toBe('just now'); // a clock a little ahead
   });
 });

@@ -8,6 +8,7 @@ import { useStore } from '../state/store';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { Monogram } from './Logo';
+import { SyncDot } from './SyncDot';
 import { ThemeToggle, toggleTheme, visibleThemeSwitch } from './ThemeToggle';
 import { useTheme } from '../lib/theme';
 import styles from './AppShell.module.css';
@@ -119,6 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* A faint watermark of the masthead; drawn by CSS so it stays decorative. */}
         <span className={styles.spineTitle} data-text={`${masthead} · Nº ${current.number}`} aria-hidden="true" />
 
+        <SyncDot className={styles.spineSync} />
         <ThemeToggle orientation="vertical" className={styles.spineToggle} />
 
         <p className={styles.deadline} title={`Issue No. ${current.number} goes to press in ${timeUntil(current.weekEnd, now)}`}>
@@ -135,6 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           <span className={styles.topTitle}>{masthead}</span>
         </Link>
+        <SyncDot className={styles.topSync} />
         <ThemeToggle size="small" className={styles.topToggle} />
         <span className={styles.topMeta}>
           Nº {current.number} · {shortCountdown(current.weekEnd, now)} to press
