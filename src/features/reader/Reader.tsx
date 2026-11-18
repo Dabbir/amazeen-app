@@ -159,7 +159,8 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
           className={styles.pageSlot}
           data-direction={direction}
           data-kind={current?.kind}
-          // Focusable so keyboard users can scroll long pages with the arrow/space keys.
+          // Scrollable regions must be focusable so keyboard users can scroll long pages (axe: scrollable-region-focusable).
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
           tabIndex={0}
           role="region"
           aria-label={`Page ${index + 1}${current ? `: ${pageLabel(current)}` : ''}`}
