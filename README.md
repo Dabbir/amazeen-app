@@ -39,6 +39,10 @@ Without this the app works fully; the Sync section just reports it can't reach t
 
 > The binding can't be added in the dashboard for a Worker deployed from this repo, because the config file is the source of truth. That's why step 3 edits `wrangler.jsonc` instead.
 
+### Previews (pull requests)
+
+Cloudflare builds every non-production branch with `wrangler preview`, which refuses to use the production database. The `previews` block in `wrangler.jsonc` points previews at a separate `amazeen-sync-preview` database (create it the same way as the production one, run `migrations/0001_init.sql` in its Console, and put its ID in the block). Trying sync in a preview therefore never touches real journals.
+
 ### Local development
 
 `npm run dev:api` builds the app and runs it together with the API on `http://localhost:8788`, using the same `wrangler.jsonc` and a local D1 (created from `migrations/`, kept in `.wrangler/`). The end-to-end tests run this way too, so they exercise the real routing, headers and database.
