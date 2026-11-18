@@ -68,11 +68,16 @@ export function formatKey(compact: string): string {
   return compact.match(/.{1,4}/gu)?.join('-') ?? compact;
 }
 
+/** The display text for a key's bytes: what the person writes down and types on another device. */
+export function keyText(bytes: Uint8Array): string {
+  const data = encodeBase32(bytes);
+  return formatKey(data + checksum(data));
+}
+
 /** A fresh key, as `[bytes, display text]`. */
 export function generateKey(random: (n: number) => Bytes = (n) => crypto.getRandomValues(new Uint8Array(n))): { bytes: Bytes; text: string } {
   const bytes = random(KEY_BYTES);
-  const data = encodeBase32(bytes);
-  return { bytes, text: formatKey(data + checksum(data)) };
+  return { bytes, text: keyText(bytes) };
 }
 
 /** Parse what a person typed or pasted. Spaces, dashes and case don't matter. */
