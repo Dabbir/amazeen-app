@@ -52,17 +52,20 @@
 .brandMark {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 7px;
   background: var(--press);
-  color: var(--press-ink);
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 19px;
-  line-height: 1;
+  color: var(--paper);
   transition: transform 300ms var(--ease-spring);
 }
+
+.brandGlyph {
+  width: 21px;
+  height: auto;
+  margin: 1px 1px 0 0; /* optical centring: the swash pulls the visual mass left */
+}
+
 .brand:hover .brandMark {
   transform: rotate(-10deg) scale(1.08);
 }

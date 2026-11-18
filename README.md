@@ -84,4 +84,22 @@ Design decisions:
 
 Typography: Fraunces (display), Newsreader (text), Instrument Sans (labels), self-hosted via Fontsource.
 
+## Brand
+
+The logo lives in `assets/logo/`:
+
+| File | Use |
+| --- | --- |
+| `amazeen-logo.svg` | Primary lockup with tagline |
+| `amazeen-logo-reversed.svg` | Same, for dark backgrounds |
+| `amazeen-wordmark.svg` | Lockup without the tagline |
+| `amazeen-mark.svg` | Monogram on its own |
+| `amazeen-icon*.svg` | App icon tiles |
+| `amazeen-logo-sheet.svg` | Overview sheet |
+
+- **Monogram:** an editorial A with a swash foot and a four-point star as its counter. The star is cut out, so the mark works on any background.
+- **Wordmark:** Fraunces Black. The tagline is Newsreader Italic. Both are outlined to paths, so the files need no fonts.
+- **Colours:** vermilion `#d43a24` (`#ff5a42` on dark), charcoal `#1b1814`, ivory `#f2ede3`.
+- **Rebuilding:** run `python3 scripts/logo/build_logo.py` (needs `fonttools`). It rebuilds every logo file, the favicon and the PWA icons. In the app, the monogram is the `Monogram` component in `src/components/Logo.tsx`.
+
 See [`docs/audit.md`](docs/audit.md) for the production-readiness audit and [`CHANGELOG.md`](CHANGELOG.md) for releases.
