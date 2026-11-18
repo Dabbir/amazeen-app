@@ -2,6 +2,20 @@
 
 All notable changes to AMAZEEN. Versions follow [semver](https://semver.org).
 
+## 1.4.0 (2026-11-18)
+
+**Sync across devices, end-to-end encrypted.**
+
+- **Office → Sync:** turn it on, get a sync key (shown once, with a typed confirmation), connect another device by entering the key, sync now, show the key again, disconnect a device, or delete the cloud copy.
+- **Private by construction:** entries are encrypted on the device (AES-256-GCM, a key derived from the sync key) before they leave it. The server stores only data it can't read, plus minimal metadata. Details and limits are in `docs/sync-security.md`.
+- **No email or password:** the key is the only secret. Losing it means the cloud copy can't be recovered, which the app says clearly.
+- **Correct merging:** the newest change wins per entry; deletions travel as tombstones so an offline device can't bring a deleted piece back; Undo restores everywhere. Replacing the archive (import, sample) records what it drops.
+- **Stays local-first:** writing never waits for the network. Sync runs after changes, when the tab returns, when the network comes back, and each minute; the status light shows synced / syncing / offline / needs attention.
+- **Backend:** a Cloudflare Pages Function with a D1 database (`migrations/0001_init.sql`), same origin as the app. Setup steps are in the README.
+- **Schema v2:** archives gain `tombstones`; v1 files and saved data migrate automatically.
+- **Security headers verified for real:** the whole e2e suite now runs on Cloudflare's local runtime with the real `_headers`, which caught and fixed three problems: a CSP directive that broke WebKit on localhost, fonts inlined as `data:` URIs that the CSP blocked, and a removed Permissions-Policy feature.
+- **Privacy page** updated to describe sync honestly.
+
 ## 1.3.0 (2026-11-18)
 
 **The edition lamp, and a responsive and readability pass.**
