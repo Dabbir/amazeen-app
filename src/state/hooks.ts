@@ -1,14 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-
-/** Current time, refreshed on an interval (default: every 30s) so countdowns and week rollover stay live. */
-export function useNow(intervalMs = 30_000): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
@@ -29,14 +19,16 @@ export function useReducedMotion(): boolean {
   );
 }
 
-/** Grow a textarea to fit its content. */
-export function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string): void {
+/** Grow a textarea to fit its content. Returns the ref to attach to the textarea. */
+export function useAutosize(value: string): React.RefObject<HTMLTextAreaElement | null> {
+  const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || el.value !== value) return;
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
-  }, [ref, value]);
+  }, [value]);
+  return ref;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -50,13 +42,16 @@ function isTypingTarget(target: EventTarget | null): boolean {
  */
 export function useHotkeys(map: Record<string, (e: KeyboardEvent) => void>, enabled = true): void {
   const mapRef = useRef(map);
-  mapRef.current = map;
+  useLayoutEffect(() => {
+    mapRef.current = map;
+  });
   useEffect(() => {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return;
       if (document.querySelector('dialog[open]')) return;
-      const handler = mapRef.current[e.key];
+      // Letters match regardless of Caps Lock / Shift; other keys (ArrowLeft, '/', …) match exactly.
+      const handler = mapRef.current[e.key] ?? (e.key.length === 1 ? mapRef.current[e.key.toLowerCase()] : undefined);
       if (handler) {
         handler(e);
       }

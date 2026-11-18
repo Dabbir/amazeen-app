@@ -1,6 +1,6 @@
-import { isMood, isSection } from '../../domain/entries';
-import { DRAFT_KEY, readRaw, removeRaw, safeStorage, writeRaw } from '../../domain/storage';
-import type { EntryDraft, EntryKind, EntryMeta } from '../../domain/types';
+import { isMood, isSection } from '../domain/entries';
+import { DRAFT_KEY, readRaw, removeRaw, safeStorage, writeRaw } from '../domain/storage';
+import type { EntryDraft, EntryKind, EntryMeta } from '../domain/types';
 
 /** Unfinished drafts are kept per kind so switching between Story and Note never loses work. */
 export interface SavedDraft {
@@ -51,4 +51,9 @@ export function clearDraft(kind: EntryKind): void {
   const { [kind]: _removed, ...rest } = readAll();
   if (Object.keys(rest).length === 0) removeRaw(safeStorage(), DRAFT_KEY);
   else writeRaw(safeStorage(), DRAFT_KEY, JSON.stringify(rest));
+}
+
+/** Remove every unfinished draft (used when erasing the archive). */
+export function clearAllDrafts(): void {
+  removeRaw(safeStorage(), DRAFT_KEY);
 }

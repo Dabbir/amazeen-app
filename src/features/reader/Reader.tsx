@@ -7,6 +7,7 @@ import { contentsFor, layoutIssue } from '../../domain/layout';
 import type { Page } from '../../domain/layout';
 import { Link, paths, useRouter } from '../../router/router';
 import { useDocumentTitle, useHotkeys } from '../../state/hooks';
+import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
 import { NotFound } from '../NotFound';
 import { CoverEditor } from './CoverEditor';
@@ -36,7 +37,8 @@ function pageLabel(page: Page): string {
 const SWIPE_MIN = 60;
 
 export default function Reader({ issueKey, page }: { issueKey: string; page: number }) {
-  const { findIssue, issues, data, now } = useStore();
+  const { findIssue, issues, data } = useStore();
+  const now = useNow();
   const issue = findIssue(issueKey);
   if (!issue) {
     return (
@@ -55,7 +57,7 @@ export default function Reader({ issueKey, page }: { issueKey: string; page: num
       previous={issues.slice(idx + 1).find((i) => i.entries.length > 0)}
       next={issues
         .slice(0, idx)
-        .reverse()
+        .toReversed()
         .find((i) => i.entries.length > 0 || i.status === 'in-production')}
       now={now}
     />
@@ -78,19 +80,15 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
   const contents = useMemo(() => contentsFor(issue, pages), [issue, pages]);
   const index = Math.min(Math.max(page, 1), pages.length) - 1;
   const current = pages[index] ?? pages[0];
-  const prevIndex = useRef(index);
-  const direction = index >= prevIndex.current ? 'forward' : 'back';
+  // Remember the last page shown to pick the page-turn direction (state derived during render, not a ref).
+  const [turn, setTurn] = useState({ index, direction: 'forward' as 'forward' | 'back' });
+  if (turn.index !== index) setTurn({ index, direction: index > turn.index ? 'forward' : 'back' });
+  const direction = turn.direction;
   const [editing, setEditing] = useState(false);
   const swipe = useRef<{ x: number; y: number } | null>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
 
   useDocumentTitle(`No. ${issue.number} · ${issue.headline}`);
 
-  useEffect(() => {
-    prevIndex.current = index;
-    const slot = stageRef.current?.querySelector<HTMLElement>('[data-scroll]');
-    if (slot) slot.scrollTop = 0;
-  }, [index]);
 
   // Normalise out-of-range page numbers in the URL.
   useEffect(() => {
@@ -151,7 +149,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
         </div>
       </header>
 
-      <div className={styles.stage} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => (swipe.current = null)}>
+      <div className={styles.stage} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => (swipe.current = null)}>
         <button type="button" className={`${styles.turn} ${styles.turnPrev}`} onClick={() => go(index)} disabled={index === 0} aria-label="Previous page">
           <Icon name="left" size={26} />
         </button>
@@ -205,7 +203,7 @@ function ReaderView({ issue, page, masthead, editor, previous, next, now }: View
         ))}
       </div>
 
-      <CoverEditor open={editing} issue={issue} onClose={() => setEditing(false)} />
+      {editing && <CoverEditor issue={issue} onClose={() => setEditing(false)} />}
     </div>
   );
 }

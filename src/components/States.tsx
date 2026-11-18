@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import { readRaw, safeStorage, STORAGE_KEY } from '../domain/storage';
+import { createIdbAdapter } from '../domain/storage';
 import { downloadText } from '../lib/download';
 import ui from './ui.module.css';
 
@@ -34,8 +34,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, BoundarySt
     console.error('AMAZEEN crashed', error, info.componentStack);
   }
 
-  private rescue = (): void => {
-    const raw = readRaw(safeStorage(), STORAGE_KEY);
+  // Reads storage directly: the store may be the thing that crashed.
+  private rescue = async (): Promise<void> => {
+    const raw = await createIdbAdapter().readRaw();
     if (raw) downloadText(raw, 'amazeen-rescue.json');
   };
 
@@ -54,7 +55,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, BoundarySt
           <button type="button" className={`${ui.btn} ${ui.dark}`} onClick={() => window.location.assign('/')}>
             Reload AMAZEEN
           </button>
-          <button type="button" className={ui.btn} onClick={this.rescue}>
+          <button type="button" className={ui.btn} onClick={() => void this.rescue()}>
             Download a rescue copy
           </button>
         </div>

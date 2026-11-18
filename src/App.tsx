@@ -7,8 +7,9 @@ import { Desk } from './features/desk/Desk';
 import { Onboarding } from './features/onboarding/Onboarding';
 import { NotFound } from './features/NotFound';
 import { RouterProvider, useRouter } from './router/router';
+import { NowProvider } from './state/now';
 import { StoreProvider, useStore } from './state/store';
-import type { LoadOutcome } from './domain/storage';
+import type { StorageAdapter } from './domain/storage';
 
 // Secondary screens are split out so the desk paints fast.
 const Composer = lazy(() => import('./features/composer/Composer'));
@@ -41,18 +42,20 @@ function Screens() {
   }
 }
 
-export function App({ initial }: { initial?: LoadOutcome }) {
+export function App({ adapter }: { adapter?: StorageAdapter }) {
   return (
     <ErrorBoundary>
-      <StoreProvider {...(initial ? { initial } : {})}>
-        <RouterProvider>
-          <ToastProvider>
-            <Suspense fallback={<PressLoader />}>
-              <Screens />
-            </Suspense>
-          </ToastProvider>
-        </RouterProvider>
-      </StoreProvider>
+      <NowProvider>
+        <StoreProvider fallback={<PressLoader label="Opening the archive…" />} {...(adapter ? { adapter } : {})}>
+          <RouterProvider>
+            <ToastProvider>
+              <Suspense fallback={<PressLoader />}>
+                <Screens />
+              </Suspense>
+            </ToastProvider>
+          </RouterProvider>
+        </StoreProvider>
+      </NowProvider>
     </ErrorBoundary>
   );
 }

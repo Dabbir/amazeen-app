@@ -41,14 +41,14 @@ export function computeStats(entries: readonly Entry[]): IssueStats {
     daysWritten: dayBuckets.filter((b) => b.length > 0).length,
     sections: [...sectionCounts.entries()]
       .map(([section, count]) => ({ section, count }))
-      .sort((a, b) => b.count - a.count || a.section.localeCompare(b.section)),
+      .toSorted((a, b) => b.count - a.count || a.section.localeCompare(b.section)),
   };
 }
 
 /** Starred entry wins (most recently starred/edited); otherwise the longest story; otherwise the longest piece. */
 export function pickCoverStory(entries: readonly Entry[]): Entry | null {
   if (entries.length === 0) return null;
-  const starred = entries.filter((e) => e.starred).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const starred = entries.filter((e) => e.starred).toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   if (starred[0]) return starred[0];
   const longest = (xs: readonly Entry[]): Entry | null =>
     xs.reduce<Entry | null>((best, e) => (best === null || entryWords(e) > entryWords(best) ? e : best), null);
@@ -86,7 +86,7 @@ const COVER_LINE_PRIORITY: Record<Entry['kind'], number> = { story: 0, list: 1, 
 export function coverLines(entries: readonly Entry[], cover: Entry | null, max = 3): string[] {
   return entries
     .filter((e) => e.id !== cover?.id)
-    .sort((a, b) => COVER_LINE_PRIORITY[a.kind] - COVER_LINE_PRIORITY[b.kind] || entryWords(b) - entryWords(a))
+    .toSorted((a, b) => COVER_LINE_PRIORITY[a.kind] - COVER_LINE_PRIORITY[b.kind] || entryWords(b) - entryWords(a))
     .slice(0, max)
     .map(coverLineFor);
 }
@@ -101,7 +101,7 @@ interface CompileContext {
 export function compileIssue(key: string, entries: readonly Entry[], ctx: CompileContext): Issue {
   const monday = weekKeyToDate(key);
   if (!monday) throw new Error(`Invalid issue key: ${key}`);
-  const sorted = [...entries].sort(byCreatedAsc);
+  const sorted = entries.toSorted(byCreatedAsc);
   const coverStory = pickCoverStory(sorted);
   const stats = computeStats(sorted);
   const weekEnd = endOfWeek(monday);
@@ -132,7 +132,7 @@ export function compileIssues(data: Pick<AppData, 'entries' | 'overrides'>, now:
   const groups = groupByWeek(data.entries);
   const currentKey = weekKey(now);
   if (!groups.has(currentKey)) groups.set(currentKey, []);
-  const keys = [...groups.keys()].sort();
+  const keys = [...groups.keys()].toSorted();
   // Future-dated weeks (e.g. imported data from another clock) are compiled too; they sort last.
   const firstYear = weekKeyToDate(keys[0] ?? currentKey)?.getFullYear() ?? now.getFullYear();
   let number = 0;
@@ -147,7 +147,7 @@ export function compileIssues(data: Pick<AppData, 'entries' | 'overrides'>, now:
       now,
     });
   });
-  return issues.reverse();
+  return issues.toReversed();
 }
 
 export function pressCheck(issue: Issue): PressCheckItem[] {

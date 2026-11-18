@@ -6,7 +6,7 @@ import { useToast } from '../../components/Toast';
 import ui from '../../components/ui.module.css';
 import { LIMITS } from '../../domain/entries';
 import { sampleEntries } from '../../domain/sample';
-import { DataFormatError, MAX_IMPORT_BYTES, parseAppData, readRaw, safeStorage, serializeForExport, STORAGE_KEY } from '../../domain/storage';
+import { DataFormatError, MAX_IMPORT_BYTES, parseAppData, serializeForExport } from '../../domain/storage';
 import type { AppData } from '../../domain/types';
 import { downloadText } from '../../lib/download';
 import { useDocumentTitle } from '../../state/hooks';
@@ -82,7 +82,7 @@ function MastheadForm() {
 
 export default function Settings() {
   useDocumentTitle('Settings');
-  const { data, replaceData, resetData, loadStatus } = useStore();
+  const { data, replaceData, eraseAll, readRawArchive, loadStatus } = useStore();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -98,8 +98,8 @@ export default function Settings() {
     toast.push({ message: `Exported ${data.entries.length} pieces.` });
   };
 
-  const exportRescue = (): void => {
-    const raw = readRaw(safeStorage(), STORAGE_KEY);
+  const exportRescue = async (): Promise<void> => {
+    const raw = await readRawArchive();
     if (raw) downloadText(raw, 'amazeen-rescue.json');
   };
 
@@ -190,7 +190,7 @@ export default function Settings() {
                 <h3>Rescue unreadable data</h3>
                 <p>Download the raw saved data that couldn’t be opened, before it’s overwritten.</p>
               </div>
-              <button type="button" className={`${ui.btn} ${ui.danger}`} onClick={exportRescue}>
+              <button type="button" className={`${ui.btn} ${ui.danger}`} onClick={() => void exportRescue()}>
                 Download raw data
               </button>
             </div>
@@ -279,8 +279,9 @@ export default function Settings() {
               className={`${ui.btn} ${ui.danger}`}
               disabled={eraseText.trim().toUpperCase() !== ERASE_WORD}
               onClick={() => {
-                resetData();
                 setErasing(false);
+                setEraseText('');
+                void eraseAll();
               }}
             >
               Erase permanently

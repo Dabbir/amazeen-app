@@ -17,6 +17,7 @@ export function Onboarding() {
   const [title, setTitle] = useState('');
   const [editor, setEditor] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [year] = useState(() => new Date().getFullYear());
   const titleId = useId();
   const editorId = useId();
   const errorId = useId();
@@ -52,7 +53,7 @@ export function Onboarding() {
   return (
     <main className={styles.page}>
       <div className={styles.strip} aria-hidden="true">
-        <span>Est. {new Date().getFullYear()}</span>
+        <span>Est. {year}</span>
         <span>Printed weekly</span>
         <span>Circulation: one</span>
       </div>

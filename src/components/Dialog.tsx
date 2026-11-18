@@ -31,6 +31,8 @@ export function Dialog({ open, onClose, title, children, actions }: DialogProps)
   }, [open]);
 
   return (
+    // Backdrop clicks land on the <dialog> itself; keyboard users close it with Escape (onCancel).
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       className={ui.dialog}

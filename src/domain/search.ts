@@ -26,7 +26,7 @@ export function searchEntries(entries: readonly Entry[], query: string, section:
   const terms = q.split(/\s+/u).filter(Boolean);
   if (terms.length === 0 && section === null) return [];
   const hits: SearchHit[] = [];
-  const sorted = [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const sorted = entries.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
   for (const entry of sorted) {
     if (section && entry.section !== section) continue;
     const text = entryText(entry);

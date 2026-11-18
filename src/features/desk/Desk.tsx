@@ -9,6 +9,7 @@ import { ENTRY_KINDS } from '../../domain/types';
 import type { Entry } from '../../domain/types';
 import { Link, paths } from '../../router/router';
 import { useDocumentTitle } from '../../state/hooks';
+import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
 import { EntryRow } from './EntryRow';
 import styles from './Desk.module.css';
@@ -28,13 +29,14 @@ function groupByDay(entries: readonly Entry[]): { day: Date; entries: Entry[] }[
     map.set(key, [...(map.get(key) ?? []), e]);
   }
   return [...map.entries()]
-    .sort(([a], [b]) => b - a)
-    .map(([key, list]) => ({ day: new Date(key), entries: list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
+    .toSorted(([a], [b]) => b - a)
+    .map(([key, list]) => ({ day: new Date(key), entries: list.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 }
 
 export function Desk() {
   const store = useStore();
-  const { data, current, issues, now, streak } = store;
+  const { data, current, issues, streak } = store;
+  const now = useNow();
   const toast = useToast();
   useDocumentTitle('Desk');
 

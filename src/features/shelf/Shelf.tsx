@@ -7,7 +7,6 @@ import { formatDayMonth, formatMonthYear, formatWeekRange } from '../../domain/d
 import { totalWords } from '../../domain/issues';
 import { layoutIssue, pageOf } from '../../domain/layout';
 import { searchEntries } from '../../domain/search';
-import type { SearchHit } from '../../domain/search';
 import { highlight } from '../../domain/text';
 import { SECTIONS } from '../../domain/types';
 import type { Issue, Section } from '../../domain/types';
@@ -17,11 +16,12 @@ import { useStore } from '../../state/store';
 import { entryHeadline } from '../desk/EntryRow';
 import styles from './Shelf.module.css';
 
+const RESULT_LIMIT = 50;
+
 function Highlighted({ text, query }: { text: string; query: string }) {
-  const term = query.trim().split(/\s+/u)[0] ?? '';
   return (
     <>
-      {highlight(text, term).map((part, i) => (part.match ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>))}
+      {highlight(text, query).map((part, i) => (part.match ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>))}
     </>
   );
 }
@@ -57,18 +57,29 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
 
   const shelved = issues.filter((i) => i.entries.length > 0 || i.status === 'in-production');
   const searching = deferredQuery.trim() !== '' || section !== null;
-  const hits = useMemo(() => (searching ? searchEntries(data.entries, deferredQuery, section) : []), [searching, data.entries, deferredQuery, section]);
-  const pageCache = useMemo(() => new Map<string, ReturnType<typeof layoutIssue>>(), [issues]);
-  const hrefFor = (hit: SearchHit): string => {
-    const issue = findIssue(hit.issueKey);
-    if (!issue) return paths.edit(hit.entry.id);
-    let pages = pageCache.get(issue.key);
-    if (!pages) {
-      pages = layoutIssue(issue);
-      pageCache.set(issue.key, pages);
+  // Ask for one extra result so we know whether to say "50+".
+  const found = useMemo(
+    () => (searching ? searchEntries(data.entries, deferredQuery, section, RESULT_LIMIT + 1) : []),
+    [searching, data.entries, deferredQuery, section],
+  );
+  const hits = found.slice(0, RESULT_LIMIT);
+  const truncated = found.length > RESULT_LIMIT;
+  // Deep link for each hit to the exact page it's printed on; each issue is laid out at most once.
+  const hrefs = useMemo(() => {
+    const pagesByIssue = new Map<string, ReturnType<typeof layoutIssue>>();
+    const out = new Map<string, string>();
+    for (const hit of found) {
+      const issue = findIssue(hit.issueKey);
+      if (!issue) {
+        out.set(hit.entry.id, paths.edit(hit.entry.id));
+        continue;
+      }
+      const pages = pagesByIssue.get(issue.key) ?? layoutIssue(issue);
+      pagesByIssue.set(issue.key, pages);
+      out.set(hit.entry.id, paths.issue(issue.key, pageOf(pages, hit.entry.id)));
     }
-    return paths.issue(issue.key, pageOf(pages, hit.entry.id));
-  };
+    return out;
+  }, [found, findIssue]);
 
   const first = data.entries.reduce<string | null>((min, e) => (min === null || e.createdAt < min ? e.createdAt : min), null);
   const printed = issues.filter((i) => i.status === 'published' && i.entries.length > 0).length;
@@ -129,7 +140,7 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
           <p className={styles.resultCount}>
             {hits.length === 0
               ? 'No matches'
-              : `${hits.length}${hits.length === 50 ? '+' : ''} ${hits.length === 1 ? 'piece' : 'pieces'}`}
+              : `${hits.length}${truncated ? '+' : ''} ${hits.length === 1 ? 'piece' : 'pieces'}`}
             {deferredQuery.trim() && <> for “{deferredQuery.trim()}”</>}
             {section && <> in {SECTION_INFO[section].label}</>}
           </p>
@@ -144,7 +155,7 @@ export default function Shelf({ initialQuery }: { initialQuery: string }) {
                 const issue = findIssue(hit.issueKey);
                 return (
                   <li key={hit.entry.id}>
-                    <Link to={hrefFor(hit)} className={styles.result}>
+                    <Link to={hrefs.get(hit.entry.id) ?? paths.edit(hit.entry.id)} className={styles.result}>
                       <span className={styles.resultIssue}>
                         <span className={styles.resultNo}>No. {issue?.number ?? '—'}</span>
                         <span>{formatDayMonth(new Date(hit.entry.createdAt))}</span>

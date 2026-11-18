@@ -27,7 +27,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .pulse {
@@ -431,7 +431,7 @@
 
 .row[data-kind='story'] .rowKind { color: var(--riso-blue); }
 .row[data-kind='quote'] .rowKind { color: var(--riso-violet); }
-.row[data-kind='list'] .rowKind { color: var(--riso-teal); }
+.row[data-kind='list'] .rowKind { color: #00707a; }
 
 @media (prefers-color-scheme: dark) {
   .row[data-kind='story'] .rowKind { color: #8aa6ff; }
@@ -559,7 +559,7 @@
   font-size: 0.8rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .latestTitle {
