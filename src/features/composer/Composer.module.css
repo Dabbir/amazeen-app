@@ -78,7 +78,7 @@
 }
 
 .saveFailed {
-  color: var(--press);
+  color: var(--press-text);
   font-weight: 600;
 }
 
@@ -136,7 +136,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .titleField,
@@ -208,7 +208,7 @@
 }
 
 .counter[data-over] {
-  color: var(--press);
+  color: var(--press-text);
   font-weight: 600;
 }
 
@@ -467,7 +467,7 @@
   font-family: var(--font-ui);
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .submit {
@@ -574,4 +574,21 @@
   .filing > .group:first-child {
     width: 100%;
   }
+}
+
+.when select {
+  appearance: none;
+  border: 0;
+  border-bottom: 1.5px dotted currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.when select:focus-visible {
+  outline: 2px solid var(--press);
+  outline-offset: 3px;
 }

@@ -70,17 +70,24 @@ export function pullQuote(text: string): string | null {
     (/\b(I|we|my|never|always|everything|nothing)\b/u.test(s) ? 2 : 0) +
     (/[!?]/u.test(s) ? 1 : 0) +
     (1 - Math.abs(s.length - 95) / 95);
-  const best = [...candidates].sort((a, b) => score(b) - score(a))[0];
+  const best = candidates.toSorted((a, b) => score(b) - score(a))[0];
   return best ? stripOuterQuotes(best) : null;
 }
 
-/** Split text into segments marking case-insensitive matches of `query`. Safe — never produces HTML. */
+/**
+ * Split text into segments marking case-insensitive matches of any whitespace-separated term in `query`.
+ * Safe: never produces HTML.
+ */
 export function highlight(text: string, query: string): { text: string; match: boolean }[] {
-  const q = query.trim();
-  if (!q) return [{ text, match: false }];
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const parts = text.split(new RegExp(`(${escaped})`, 'giu'));
-  return parts.filter((p) => p !== '').map((p) => ({ text: p, match: p.toLowerCase() === q.toLowerCase() }));
+  const terms = [...new Set(query.trim().toLowerCase().split(/\s+/u).filter(Boolean))];
+  if (terms.length === 0) return [{ text, match: false }];
+  // Longest first so "breadcrumb" wins over "bread" when both are terms.
+  const pattern = terms
+    .toSorted((a, b) => b.length - a.length)
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'))
+    .join('|');
+  const parts = text.split(new RegExp(`(${pattern})`, 'giu'));
+  return parts.filter((p) => p !== '').map((p) => ({ text: p, match: terms.includes(p.toLowerCase()) }));
 }
 
 /** Title Case for short headlines, keeping small words lowercase. */

@@ -38,7 +38,6 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
     <div
       className={ui.toast}
       data-tone={toast.tone ?? 'default'}
-      role={toast.tone === 'error' ? 'alert' : 'status'}
       onMouseEnter={() => window.clearTimeout(timer.current)}
       onMouseLeave={start}
       onFocus={() => window.clearTimeout(timer.current)}
@@ -78,10 +77,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className={ui.toasts} aria-live="polite">
-        {toasts.map((t) => (
-          <ToastView key={t.id} toast={t} onDismiss={dismiss} />
-        ))}
+      {/* Live regions exist up front and items carry no roles, so each toast is announced exactly once. */}
+      <div className={ui.toasts}>
+        <div aria-live="polite" className={ui.toastStack}>
+          {toasts.filter((t) => t.tone !== 'error').map((t) => (
+            <ToastView key={t.id} toast={t} onDismiss={dismiss} />
+          ))}
+        </div>
+        <div aria-live="assertive" className={ui.toastStack}>
+          {toasts.filter((t) => t.tone === 'error').map((t) => (
+            <ToastView key={t.id} toast={t} onDismiss={dismiss} />
+          ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );

@@ -5,6 +5,7 @@ import ui from '../../components/ui.module.css';
 import { LIMITS } from '../../domain/entries';
 import { compileIssues } from '../../domain/issues';
 import { sampleEntries } from '../../domain/sample';
+import { Link, paths } from '../../router/router';
 import { useDocumentTitle } from '../../state/hooks';
 import { useStore } from '../../state/store';
 import styles from './Onboarding.module.css';
@@ -17,6 +18,7 @@ export function Onboarding() {
   const [title, setTitle] = useState('');
   const [editor, setEditor] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [year] = useState(() => new Date().getFullYear());
   const titleId = useId();
   const editorId = useId();
   const errorId = useId();
@@ -52,7 +54,7 @@ export function Onboarding() {
   return (
     <main className={styles.page}>
       <div className={styles.strip} aria-hidden="true">
-        <span>Est. {new Date().getFullYear()}</span>
+        <span>Est. {year}</span>
         <span>Printed weekly</span>
         <span>Circulation: one</span>
       </div>
@@ -136,7 +138,9 @@ export function Onboarding() {
                 Explore a sample archive
               </button>
             </div>
-            <p className={styles.privacy}>Everything stays in this browser. No account, no tracking, no cloud.</p>
+            <p className={styles.privacy}>
+              Everything stays in this browser. No account, no tracking, no cloud. <Link to={paths.privacy()}>Privacy</Link>
+            </p>
           </form>
         </section>
 

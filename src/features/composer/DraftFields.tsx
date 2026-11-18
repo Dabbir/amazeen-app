@@ -17,8 +17,7 @@ interface FieldsProps {
 }
 
 function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useAutosize(ref, props.value);
+  const ref = useAutosize(props.value);
   return <textarea ref={ref} rows={1} {...props} />;
 }
 

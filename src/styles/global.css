@@ -11,11 +11,13 @@
   --sheet: #faf7f1;
   --ink: #1b1814;
   --ink-2: #4b443b;
-  --ink-3: #7d7467;
+  --ink-3: #665e52;
   --rule: rgb(27 24 20 / 0.9);
   --hairline: rgb(27 24 20 / 0.16);
-  --press: #e8432e;
+  /* Press red: --press for fills and large type (≥3:1), --press-text for small red text (≥4.5:1). */
+  --press: #d43a24;
   --press-ink: #fffaf3;
+  --press-text: #b92e1a;
   --press-soft: rgb(232 67 46 / 0.12);
   --ok: #1d7a4c;
   --warn: #b25d00;
@@ -30,9 +32,9 @@
   --riso-pink: #ff4fa3;
   --riso-green: #11a35f;
 
-  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-text: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-  --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces Variable', 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-text: 'Newsreader Variable', 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
   --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.12rem);
@@ -64,6 +66,7 @@
     --hairline: rgb(236 229 214 / 0.14);
     --press: #ff5a42;
     --press-ink: #1b0c08;
+    --press-text: #ff6b55;
     --press-soft: rgb(255 90 66 / 0.14);
     --ok: #4fc58a;
     --warn: #f2a33a;
@@ -232,6 +235,7 @@ kbd {
   *::before,
   *::after {
     animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;

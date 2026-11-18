@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ConfirmDialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { useToast } from '../../components/Toast';
 import ui from '../../components/ui.module.css';
 import { KIND_INFO } from '../../domain/catalog';
-import { formatDayMonth, weekKey } from '../../domain/dates';
+import { daysSoFarThisWeek, filingDate, formatDayMonth, formatWeekday, weekKey } from '../../domain/dates';
 import {
   createEntry,
   draftFromEntry,
@@ -21,9 +21,10 @@ import { ENTRY_KINDS } from '../../domain/types';
 import type { Entry, EntryDraft, EntryKind, EntryMeta } from '../../domain/types';
 import { paths, useRouter } from '../../router/router';
 import { prefersReducedMotion, useDocumentTitle } from '../../state/hooks';
+import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
 import { NotFound } from '../NotFound';
-import { clearDraft, loadDraft, saveDraft } from './drafts';
+import { clearDraft, loadDraft, saveDraft } from '../../state/drafts';
 import { DraftFields } from './DraftFields';
 import { FilingBar } from './FilingBar';
 import styles from './Composer.module.css';
@@ -35,7 +36,7 @@ const STAMP_MS = 720;
 function defaultMeta(entries: readonly Entry[]): EntryMeta {
   // Carry today's mood forward: if you've already said it's a sunny day, it probably still is.
   const today = new Date().toDateString();
-  const last = [...entries].reverse().find((e) => new Date(e.createdAt).toDateString() === today);
+  const last = entries.toReversed().find((e) => new Date(e.createdAt).toDateString() === today);
   return { section: 'life', mood: last?.mood ?? 3, starred: false };
 }
 
@@ -59,25 +60,28 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
   const kind: EntryKind = existing?.kind ?? (mode.type === 'new' ? mode.kind : 'story');
 
   const [restored] = useState(() => (existing ? null : loadDraft(kind)));
-  const initial = useMemo(
-    () => ({
-      draft: existing ? draftFromEntry(existing) : (restored?.draft ?? emptyDraft(kind)),
-      meta: existing
-        ? { section: existing.section, mood: existing.mood, starred: existing.starred }
-        : (restored?.meta ?? defaultMeta(store.data.entries)),
-    }),
-    // Initial values are computed once per mount; later store changes must not reset the form.
-    [],
-  );
+  // Initial values are computed once per mount; later store changes must not reset the form.
+  const [initial] = useState(() => ({
+    draft: existing ? draftFromEntry(existing) : (restored?.draft ?? emptyDraft(kind)),
+    meta: existing
+      ? { section: existing.section, mood: existing.mood, starred: existing.starred }
+      : (restored?.meta ?? defaultMeta(store.data.entries)),
+  }));
   const [draft, setDraft] = useState<EntryDraft>(initial.draft);
   const [meta, setMeta] = useState<EntryMeta>(initial.meta);
   const [showErrors, setShowErrors] = useState(false);
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>(restored ? 'saved' : 'idle');
+  const snapshot = JSON.stringify([draft, meta]);
+  const [lastSaved, setLastSaved] = useState<{ snapshot: string; ok: boolean } | null>(() =>
+    restored ? { snapshot: JSON.stringify([initial.draft, initial.meta]), ok: true } : null,
+  );
   const [showRestored, setShowRestored] = useState(Boolean(restored && !isDraftBlank(restored.draft)));
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [stamping, setStamping] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [attempt, setAttempt] = useState(0);
+  // Catching up: a new piece can be dated earlier in the current week.
+  const clock = useNow();
+  const [daysAgo, setDaysAgo] = useState(0);
 
   // After a failed submit, move focus to the first invalid field (runs once errors are in the DOM).
   useEffect(() => {
@@ -95,20 +99,43 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
 
   useDocumentTitle(existing ? 'Editing' : KIND_INFO[kind].verb);
 
+  const blank = isDraftBlank(draft);
+  const saveState: 'idle' | 'saving' | 'saved' | 'failed' =
+    existing || blank ? 'idle' : lastSaved?.snapshot !== snapshot ? 'saving' : lastSaved.ok ? 'saved' : 'failed';
+
   // Autosave new-entry drafts (debounced). Edits are only saved explicitly.
   useEffect(() => {
     if (existing || stamping) return;
-    if (isDraftBlank(draft)) {
+    if (blank) {
       clearDraft(kind);
-      setSaveState('idle');
       return;
     }
-    setSaveState('saving');
     const id = window.setTimeout(() => {
-      setSaveState(saveDraft(kind, { draft, meta, savedAt: new Date().toISOString() }) ? 'saved' : 'failed');
+      const ok = saveDraft(kind, { draft, meta, savedAt: new Date().toISOString() });
+      setLastSaved({ snapshot, ok });
     }, 450);
     return () => window.clearTimeout(id);
-  }, [draft, meta, kind, existing, stamping]);
+  }, [draft, meta, snapshot, blank, kind, existing, stamping]);
+
+  // Flush the pending draft immediately if the tab is hidden or closed inside the debounce window.
+  const pending = useRef({ draft, meta, skip: true });
+  useLayoutEffect(() => {
+    pending.current = { draft, meta, skip: Boolean(existing) || stamping || blank };
+  });
+  useEffect(() => {
+    const flush = (): void => {
+      const p = pending.current;
+      if (!p.skip && document.visibilityState === 'hidden') {
+        saveDraft(kind, { draft: p.draft, meta: p.meta, savedAt: new Date().toISOString() });
+      }
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, [kind]);
 
   // Guard against closing the tab with unsaved edits.
   useEffect(() => {
@@ -142,7 +169,7 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
       return;
     }
 
-    const entry = createEntry(draft, meta, now);
+    const entry = createEntry(draft, meta, filingDate(now, daysAgo));
     store.addEntry(entry);
     clearDraft(kind);
     const key = weekKey(now);
@@ -172,6 +199,8 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
     }
   };
 
+  const filingOptions = daysSoFarThisWeek(clock);
+
   const issueLabel = existing
     ? `No. ${store.issueForEntry(existing)?.number ?? '?'} · filed ${formatDayMonth(new Date(existing.createdAt))}`
     : `For No. ${store.current.number}`;
@@ -179,7 +208,7 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
   return (
     <div className={styles.page} onKeyDown={onKeyDown}>
       <header className={styles.bar}>
-        <button type="button" className={`${ui.btn} ${ui.quiet} ${styles.back}`} onClick={leave}>
+        <button type="button" className={`${ui.btn} ${ui.quiet} ${styles.back}`} onClick={leave} aria-label="Back to desk">
           <Icon name="left" size={18} />
           <span>Desk</span>
         </button>
@@ -239,6 +268,21 @@ function ComposerForm({ mode, existing }: { mode: Mode; existing: Entry | undefi
             <span>{KIND_INFO[kind].label}</span>
             <span aria-hidden="true">·</span>
             <span>{issueLabel}</span>
+            {!existing && filingOptions.length > 1 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <label className={styles.when}>
+                  <span className="visually-hidden">Filed on</span>
+                  <select value={daysAgo} onChange={(e) => setDaysAgo(Number(e.target.value))}>
+                    {filingOptions.map((day, i) => (
+                      <option key={day.getTime()} value={i}>
+                        {i === 0 ? 'Today' : i === 1 ? 'Yesterday' : formatWeekday(day)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
           </p>
           <DraftFields draft={draft} errors={visibleErrors} onChange={setDraft} autoFocus={!existing} />
         </div>

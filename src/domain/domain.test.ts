@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { endOfWeek, formatWeekRange, isoWeek, startOfWeek, timeUntil, toRoman, weekKey, weekKeyToDate } from './dates';
+import { daysSoFarThisWeek, endOfWeek, filingDate, formatWeekRange, isoWeek, startOfWeek, timeUntil, toRoman, weekKey, weekKeyToDate } from './dates';
 import { createEntry, emptyDraft, isDraftBlank, normalizeDraft, parseEntry, updateEntry, validateDraft } from './entries';
+import { backupStatus, mergeData, summarize } from './backup';
 import { compileIssues, pickCoverStory, pressCheck, weeklyStreak } from './issues';
 import { contentsFor, layoutIssue } from './layout';
 import { sampleEntries } from './sample';
@@ -241,5 +242,88 @@ describe('sample data', () => {
     expect(entries.length).toBeGreaterThan(15);
     expect(entries.every((e) => new Date(e.createdAt) <= now)).toBe(true);
     expect(entries.every((e) => parseEntry(JSON.parse(JSON.stringify(e))) !== null)).toBe(true);
+  });
+});
+
+describe('filing dates (audit #5)', () => {
+  it('backdates within the current week only, keeping the time of day', () => {
+    const wed = new Date(2026, 10, 18, 21, 15);
+    expect(filingDate(wed, 1)).toEqual(new Date(2026, 10, 17, 21, 15));
+    expect(filingDate(wed, 2)).toEqual(new Date(2026, 10, 16, 21, 15));
+    expect(filingDate(wed, 9)).toEqual(new Date(2026, 10, 16, 21, 15)); // clamped to Monday
+    expect(filingDate(wed, -3)).toEqual(wed); // never the future
+    expect(daysSoFarThisWeek(wed).map((d) => d.getDate())).toEqual([18, 17, 16]);
+    expect(daysSoFarThisWeek(new Date(2026, 10, 16, 8))).toHaveLength(1);
+  });
+});
+
+describe('ISO week properties, 2000–2100', () => {
+  it('every day maps to a week whose Monday round-trips and contains it', () => {
+    let previousKey = '';
+    let changes = 0;
+    const problems: string[] = [];
+    for (let d = new Date(2000, 0, 1); d.getFullYear() <= 2100; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+      const key = weekKey(d);
+      const monday = weekKeyToDate(key);
+      if (!monday || monday.getDay() !== 1 || startOfWeek(d).getTime() !== monday.getTime()) problems.push(`${d.toDateString()} → ${key}`);
+      if (key !== previousKey) {
+        changes += 1;
+        if (previousKey !== '' && d.getDay() !== 1) problems.push(`week changed on a non-Monday: ${d.toDateString()}`);
+        previousKey = key;
+      }
+    }
+    expect(problems).toEqual([]);
+    expect(changes).toBeGreaterThan(5200);
+  });
+});
+
+describe('backups (phase 2)', () => {
+  const now = new Date(2026, 10, 18, 12);
+  const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
+  const data = (entries: Entry[], lastExportedAt?: string) => ({
+    version: 1 as const,
+    magazine: null,
+    entries,
+    overrides: {},
+    ...(lastExportedAt ? { lastExportedAt } : {}),
+  });
+
+  it('is due after two weeks of un-exported changes, and respects a snooze', () => {
+    const old = note('old', daysAgo(20));
+    expect(backupStatus(data([old]), now, null)).toEqual({ due: true, daysSinceExport: null });
+    expect(backupStatus(data([note('new', daysAgo(2))]), now, null).due).toBe(false); // archive too young
+    expect(backupStatus(data([old], daysAgo(1).toISOString()), now, null).due).toBe(false); // exported after the change
+    const changedSince = data([old, note('fresh', daysAgo(3))], daysAgo(15).toISOString());
+    expect(backupStatus(changedSince, now, null)).toEqual({ due: true, daysSinceExport: 15 });
+    expect(backupStatus(changedSince, now, daysAgo(2).toISOString()).due).toBe(false);
+    expect(backupStatus(changedSince, now, daysAgo(8).toISOString()).due).toBe(true);
+  });
+
+  it('merges by id with the newest edit winning, keeping the current masthead', () => {
+    const a = note('a', daysAgo(5));
+    const b = note('b', daysAgo(4));
+    const bEdited = { ...b, body: 'b edited', updatedAt: daysAgo(1).toISOString() } as Entry;
+    const aStale = { ...a, body: 'a stale', updatedAt: daysAgo(9).toISOString() } as Entry;
+    const c = note('c', daysAgo(3));
+    const current = { ...data([a, b]), magazine: { title: 'Mine', editor: 'Me', createdAt: daysAgo(30).toISOString() } };
+    const incoming = { ...data([aStale, bEdited, c]), magazine: { title: 'Theirs', editor: 'X', createdAt: daysAgo(30).toISOString() }, overrides: { '2026-W47': { ink: 'pink' as const } } };
+    const { data: merged, added, updated } = mergeData(current, incoming);
+    expect({ added, updated }).toEqual({ added: 1, updated: 1 });
+    expect(merged.magazine?.title).toBe('Mine');
+    expect(merged.entries.map((e) => (e.kind === 'note' ? e.body : '')).toSorted()).toEqual(['a', 'b edited', 'c']);
+    expect(merged.overrides).toEqual({ '2026-W47': { ink: 'pink' } });
+  });
+
+  it('summarises an archive for the import preview', () => {
+    const s = summarize(data([note('x', daysAgo(10)), note('y', daysAgo(1))]), (iso) => weekKey(new Date(iso)));
+    expect(s.entries).toBe(2);
+    expect(s.issues).toBe(2);
+    expect(s.first && s.last && s.first < s.last).toBe(true);
+  });
+
+  it('round-trips lastExportedAt through validation', () => {
+    const at = daysAgo(3).toISOString();
+    expect(parseAppData({ version: 1, entries: [], lastExportedAt: at }).data.lastExportedAt).toBe(at);
+    expect(parseAppData({ version: 1, entries: [], lastExportedAt: 'nonsense' }).data.lastExportedAt).toBeUndefined();
   });
 });

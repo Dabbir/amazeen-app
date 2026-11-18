@@ -6,13 +6,40 @@ Write a little every day (a story, a quick note, something someone said, a list)
 
 No account, no server. Everything lives in your browser and can be exported/imported as JSON.
 
+## Data model (local-first)
+
+- **IndexedDB** holds the archive. Every save is also mirrored synchronously to `localStorage` with a timestamp, so a write cut off by closing the page is never lost. On load, the newer copy wins.
+- **Drafts** live in `localStorage` and are flushed when the tab is hidden.
+- **Several tabs** stay in sync through `BroadcastChannel`.
+- The app asks the browser for **persistent storage**, and installing it as a PWA makes eviction far less likely.
+- **Backups:** Settings → Export downloads a JSON archive. The Desk reminds you when there are un-exported changes older than 14 days. Import previews the file, then merges (newest edit wins) or replaces.
+- **Schema changes** go through `migrate()` in `src/domain/storage.ts`, so old exports always open.
+
+## Deploying (Cloudflare Pages)
+
+1. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → choose this repo.
+2. Build settings: framework **None**, build command `npm run build`, output directory `dist`, environment variable `NODE_VERSION=24`.
+3. Production branch: `main`. Every pull request gets its own preview URL.
+4. `public/_headers` sets the CSP, HSTS and caching. Cloudflare Pages serves `index.html` for unknown paths automatically (SPA mode), so deep links like `/issue/2026-W46?p=3` work.
+5. Optional: GitHub → Settings → Branches → protect `main` and require the **CI** checks.
+
+### Release checklist
+
+1. CI green on the pull request (lint, types, unit, build, e2e + accessibility).
+2. Open the preview URL and spot-check the Desk, Composer, Reader and Shelf on a phone.
+3. Bump `version` in `package.json`, add a `CHANGELOG.md` entry, and merge to `main`.
+4. Verify production. Open tabs get an "A new edition of AMAZEEN is ready" prompt.
+5. To roll back, use Cloudflare Pages → Deployments → *Rollback* on the previous deploy.
+
 ## Run it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 35 unit + integration tests (Vitest + Testing Library)
-npm run build      # typecheck + production build to dist/
+npm run lint       # oxlint (zero warnings allowed)
+npm test           # unit + integration tests (Vitest + Testing Library)
+npm run test:e2e   # Playwright against the production build, with axe accessibility audits
+npm run build      # typecheck + production build (PWA) to dist/
 ```
 
 ## The product
@@ -49,10 +76,12 @@ src/
 
 Design decisions:
 
-- **Only React at runtime.** Routing, state, dialogs, toasts and charts are small, purpose-built modules.
+- **Only React at runtime.** Routing, state, dialogs, toasts and charts are small, purpose-built modules. Fonts are self-hosted.
 - **Covers are pure CSS.** All measurements use `cqi` container units, so one component renders crisply from a 110px thumbnail to a full page, and prints.
 - **Strict TypeScript** (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`).
 - **Untrusted input is parsed, not trusted.** Imports and storage go through the same validators as the composer; React escapes all text, and search highlighting never builds HTML.
 - **Accessible by default:** semantic landmarks, skip link, labelled controls, native radios for pickers, live regions for page turns and toasts, visible focus, `prefers-reduced-motion` and `prefers-color-scheme` support.
 
-Typography: Fraunces (display), Newsreader (text), Instrument Sans (labels), via Google Fonts with system fallbacks.
+Typography: Fraunces (display), Newsreader (text), Instrument Sans (labels), self-hosted via Fontsource.
+
+See [`docs/audit.md`](docs/audit.md) for the production-readiness audit and [`CHANGELOG.md`](CHANGELOG.md) for releases.

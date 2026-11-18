@@ -9,7 +9,9 @@ import { ENTRY_KINDS } from '../../domain/types';
 import type { Entry } from '../../domain/types';
 import { Link, paths } from '../../router/router';
 import { useDocumentTitle } from '../../state/hooks';
+import { useNow } from '../../state/now';
 import { useStore } from '../../state/store';
+import { BackupReminder } from './BackupReminder';
 import { EntryRow } from './EntryRow';
 import styles from './Desk.module.css';
 
@@ -28,13 +30,14 @@ function groupByDay(entries: readonly Entry[]): { day: Date; entries: Entry[] }[
     map.set(key, [...(map.get(key) ?? []), e]);
   }
   return [...map.entries()]
-    .sort(([a], [b]) => b - a)
-    .map(([key, list]) => ({ day: new Date(key), entries: list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
+    .toSorted(([a], [b]) => b - a)
+    .map(([key, list]) => ({ day: new Date(key), entries: list.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 }
 
 export function Desk() {
   const store = useStore();
-  const { data, current, issues, now, streak } = store;
+  const { data, current, issues, streak } = store;
+  const now = useNow();
   const toast = useToast();
   useDocumentTitle('Desk');
 
@@ -45,6 +48,7 @@ export function Desk() {
   const published = issues.filter((i) => i.status === 'published' && i.entries.length > 0).length;
   const editorFirst = data.magazine?.editor.split(' ')[0] ?? '';
   const days = groupByDay(current.entries);
+  const coverHint = current.entries.length ? 'Preview the proof' : 'See the blank proof';
 
   const onDelete = (entry: Entry): void => {
     const removed = store.deleteEntry(entry.id);
@@ -65,6 +69,8 @@ export function Desk() {
           <span className={styles.pulse} aria-hidden="true" /> Goes to press in {timeUntil(current.weekEnd, now)}
         </span>
       </div>
+
+      <BackupReminder />
 
       <section className={styles.hero} aria-labelledby="desk-heading">
         <div className={styles.heroCopy}>
@@ -107,10 +113,15 @@ export function Desk() {
           <Link
             to={paths.issue(current.key)}
             className={styles.coverLink}
-            aria-label={`Preview Issue No. ${current.number}: ${current.headline}`}
           >
             <CoverArt issue={current} masthead={data.magazine?.title ?? 'Amazeen'} morph decorative />
-            <span className={styles.coverHint}>{current.entries.length ? 'Preview the proof' : 'See the blank proof'} →</span>
+            <span className={styles.coverHint}>
+              {coverHint}
+              <span className="visually-hidden">
+                : Issue No. {current.number}, {current.headline}
+              </span>{' '}
+              <span aria-hidden="true">→</span>
+            </span>
           </Link>
 
           <div className={styles.check} aria-labelledby="press-check">

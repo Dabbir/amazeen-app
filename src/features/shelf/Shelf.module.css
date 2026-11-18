@@ -173,7 +173,7 @@
   padding: 1px 6px;
   border: 1px solid var(--press);
   border-radius: 3px;
-  color: var(--press);
+  color: var(--press-text);
   font-family: var(--font-ui);
   font-size: 0.62rem;
   font-weight: 700;
@@ -248,7 +248,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--press);
+  color: var(--press-text);
 }
 
 .resultTitle {

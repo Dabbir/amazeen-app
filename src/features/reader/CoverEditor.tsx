@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { CoverArt } from '../../components/CoverArt';
 import { Dialog } from '../../components/Dialog';
 import { useToast } from '../../components/Toast';
@@ -11,8 +11,11 @@ import type { Ink, Issue } from '../../domain/types';
 import { useStore } from '../../state/store';
 import styles from './Reader.module.css';
 
-/** Art-direct a cover: pick the ink and override the auto-generated headline. Previews live. */
-export function CoverEditor({ open, issue, onClose }: { open: boolean; issue: Issue; onClose: () => void }) {
+/**
+ * Art-direct a cover: pick the ink and override the auto-generated headline. Previews live.
+ * Mounted only while open, so its fields always start from the saved cover settings.
+ */
+export function CoverEditor({ issue, onClose }: { issue: Issue; onClose: () => void }) {
   const { data, setOverride } = useStore();
   const toast = useToast();
   const saved = data.overrides[issue.key];
@@ -20,12 +23,6 @@ export function CoverEditor({ open, issue, onClose }: { open: boolean; issue: Is
   const [headline, setHeadline] = useState(saved?.headline ?? '');
   const headlineId = useId();
   const autoHeadline = headlineFor(issue.coverStory);
-
-  useEffect(() => {
-    if (!open) return;
-    setInk(saved?.ink ?? null);
-    setHeadline(saved?.headline ?? '');
-  }, [open, saved]);
 
   const tooLong = headline.trim().length > LIMITS.headline;
   const preview: Issue = { ...issue, ink: ink ?? issue.ink, headline: headline.trim() || autoHeadline };
@@ -40,7 +37,7 @@ export function CoverEditor({ open, issue, onClose }: { open: boolean; issue: Is
 
   return (
     <Dialog
-      open={open}
+      open
       onClose={onClose}
       title="Art-direct the cover"
       actions={

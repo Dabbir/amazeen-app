@@ -1,12 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { weekKey } from '../domain/dates';
+import { createId } from '../domain/entries';
 import { compileIssues, weeklyStreak } from '../domain/issues';
-import { loadData, saveData } from '../domain/storage';
-import type { LoadOutcome, SaveOutcome } from '../domain/storage';
+import { createIdbAdapter, EMPTY_DATA } from '../domain/storage';
+import type { LoadOutcome, SaveOutcome, StorageAdapter } from '../domain/storage';
 import type { AppData, Entry, Issue, IssueOverride, Magazine } from '../domain/types';
-import { useNow } from './hooks';
+import { clearAllDrafts } from './drafts';
+import { requestPersistentStorage } from '../lib/persist';
+import { useNow } from './now';
 import { reducer } from './reducer';
+import type { Action } from './reducer';
 
 export interface Store {
   data: AppData;
@@ -14,9 +18,9 @@ export interface Store {
   issues: readonly Issue[];
   current: Issue;
   streak: number;
-  now: Date;
   loadStatus: LoadOutcome['status'];
   saveStatus: SaveOutcome;
+  storageKind: StorageAdapter['kind'];
   setMagazine: (magazine: Magazine) => void;
   addEntry: (entry: Entry) => void;
   updateEntry: (entry: Entry) => void;
@@ -24,57 +28,134 @@ export interface Store {
   toggleStar: (id: string) => void;
   setOverride: (key: string, override: IssueOverride | null) => void;
   replaceData: (data: AppData) => void;
-  resetData: () => void;
+  markExported: () => void;
+  /** Permanently remove the archive, legacy copies and drafts from this browser. */
+  eraseAll: () => Promise<void>;
+  /** Raw stored text, for rescue downloads when the archive can't be parsed. */
+  readRawArchive: () => Promise<string | null>;
   findIssue: (key: string) => Issue | undefined;
   issueForEntry: (entry: Entry) => Issue | undefined;
 }
 
 const StoreContext = createContext<Store | null>(null);
+const CHANNEL = 'amazeen';
 
 interface ProviderProps {
   children: ReactNode;
-  /** Inject initial data (tests). Defaults to localStorage. */
-  initial?: LoadOutcome;
+  /** Shown while the archive loads from storage. */
+  fallback?: ReactNode;
+  /** Storage backend. Defaults to IndexedDB (with localStorage fallback). */
+  adapter?: StorageAdapter;
 }
 
-export function StoreProvider({ children, initial }: ProviderProps) {
-  const [boot] = useState<LoadOutcome>(() => initial ?? loadData());
-  const [data, dispatch] = useReducer(reducer, boot.data);
-  const [loadStatus, setLoadStatus] = useState(boot.status);
+type Boot = { phase: 'loading' } | { phase: 'ready'; status: LoadOutcome['status'] };
+
+export function StoreProvider({ children, fallback = null, adapter: adapterProp }: ProviderProps) {
+  const [adapter] = useState<StorageAdapter>(() => adapterProp ?? createIdbAdapter());
+  const [data, dispatch] = useReducer(reducer, EMPTY_DATA);
+  const [boot, setBoot] = useState<Boot>({ phase: 'loading' });
   const [saveStatus, setSaveStatus] = useState<SaveOutcome>({ ok: true });
-  const now = useNow();
-  const dataRef = useRef(data);
-  dataRef.current = data;
 
-  // Persist on change. Corrupt storage is left untouched until the user acts, so it can still be recovered.
-  const firstRun = useRef(true);
+  // Only user actions mark the archive dirty. Hydrating from storage never triggers a save, so
+  // unreadable data stays untouched (and rescuable) until the person actually changes something.
+  const dirty = useRef(false);
+  const act = useCallback((action: Action) => {
+    dirty.current = true;
+    dispatch(action);
+  }, []);
+
+  // Identifies this store instance (one per tab) so it ignores its own broadcast messages.
+  const [tabId] = useState(createId);
+  const channel = useRef<BroadcastChannel | null>(null);
+
+  // Load (and reload when another tab saves).
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false;
-      return;
-    }
-    setSaveStatus(saveData(data));
-    setLoadStatus((s) => (s === 'corrupt' ? 'ok' : s));
-  }, [data]);
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      const outcome = await adapter.load();
+      if (cancelled) return;
+      dispatch({ type: 'data/replace', data: outcome.data });
+      setBoot({ phase: 'ready', status: outcome.status });
+    };
+    void load();
 
-  const currentKey = weekKey(now);
-  // Recompile only when content changes or the week rolls over, not on every clock tick.
-  const issues = useMemo(
-    () => compileIssues(data, now),
-    [data.entries, data.overrides, currentKey],
-  );
-  const streak = useMemo(() => weeklyStreak(data.entries, now), [data.entries, currentKey]);
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel(CHANNEL);
+      channel.current = bc;
+      bc.addEventListener('message', (e: MessageEvent<{ type: string; from: string }>) => {
+        if (e.data?.type === 'saved' && e.data.from !== tabId) void load();
+      });
+    }
+    return () => {
+      cancelled = true;
+      channel.current?.close();
+      channel.current = null;
+    };
+  }, [adapter, tabId]);
+
+  // Persist after user changes. Writes are serialised and coalesced: at most one in flight,
+  // and the latest state is always the one written last.
+  const latest = useRef(data);
+  const saving = useRef<Promise<void> | null>(null);
+  const queued = useRef(false);
+  const askedPersistence = useRef(false);
+  useEffect(() => {
+    latest.current = data;
+    if (!dirty.current) return; // hydration from storage or another tab: nothing to write
+    dirty.current = false;
+    const run = async (): Promise<void> => {
+      do {
+        queued.current = false;
+        const snapshot = latest.current;
+        const result = await adapter.save(snapshot);
+        setSaveStatus(result);
+        if (result.ok) {
+          channel.current?.postMessage({ type: 'saved', from: tabId });
+          setBoot((b) => (b.phase === 'ready' && b.status === 'corrupt' ? { phase: 'ready', status: 'ok' } : b));
+          if (snapshot.magazine && !askedPersistence.current) {
+            askedPersistence.current = true;
+            void requestPersistentStorage();
+          }
+        }
+      } while (queued.current);
+      saving.current = null;
+    };
+    if (saving.current) queued.current = true;
+    else saving.current = run();
+  }, [data, adapter, tabId]);
+
+  // Issues depend on the clock only through the current week, so recompile on week rollover, not every tick.
+  const now = useNow();
+  const [weekNow, setWeekNow] = useState(now);
+  if (weekKey(weekNow) !== weekKey(now)) setWeekNow(now);
+  const issues = useMemo(() => compileIssues(data, weekNow), [data, weekNow]);
+  const streak = useMemo(() => weeklyStreak(data.entries, weekNow), [data.entries, weekNow]);
 
   const findIssue = useCallback((key: string) => issues.find((i) => i.key === key), [issues]);
   const issueForEntry = useCallback((entry: Entry) => findIssue(weekKey(new Date(entry.createdAt))), [findIssue]);
 
-  const deleteEntry = useCallback((id: string) => {
-    const existing = dataRef.current.entries.find((e) => e.id === id);
-    dispatch({ type: 'entry/delete', id });
-    return existing;
-  }, []);
+  const deleteEntry = useCallback(
+    (id: string) => {
+      const existing = latest.current.entries.find((e) => e.id === id);
+      act({ type: 'entry/delete', id });
+      return existing;
+    },
+    [act],
+  );
 
-  const store = useMemo<Store>(() => {
+  const eraseAll = useCallback(async () => {
+    dirty.current = false;
+    await saving.current;
+    await adapter.clear();
+    clearAllDrafts();
+    dispatch({ type: 'data/reset' });
+    setBoot({ phase: 'ready', status: 'empty' });
+    setSaveStatus({ ok: true });
+    channel.current?.postMessage({ type: 'saved', from: tabId });
+  }, [adapter, tabId]);
+
+  const store = useMemo<Store | null>(() => {
+    if (boot.phase === 'loading') return null;
     const current = issues[0];
     if (!current) throw new Error('Invariant: the current issue always exists.');
     return {
@@ -82,22 +163,27 @@ export function StoreProvider({ children, initial }: ProviderProps) {
       issues,
       current,
       streak,
-      now,
-      loadStatus,
+      loadStatus: boot.status,
       saveStatus,
-      setMagazine: (magazine) => dispatch({ type: 'magazine/set', magazine }),
-      addEntry: (entry) => dispatch({ type: 'entry/add', entry }),
-      updateEntry: (entry) => dispatch({ type: 'entry/update', entry }),
+      storageKind: adapter.kind,
+      setMagazine: (magazine) => act({ type: 'magazine/set', magazine }),
+      addEntry: (entry) => act({ type: 'entry/add', entry }),
+      updateEntry: (entry) => act({ type: 'entry/update', entry }),
       deleteEntry,
-      toggleStar: (id) => dispatch({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
-      setOverride: (key, override) => dispatch({ type: 'override/set', key, override }),
-      replaceData: (next) => dispatch({ type: 'data/replace', data: next }),
-      resetData: () => dispatch({ type: 'data/reset' }),
+      toggleStar: (id) => act({ type: 'entry/toggleStar', id, now: new Date().toISOString() }),
+      setOverride: (key, override) => act({ type: 'override/set', key, override }),
+      replaceData: (next) => act({ type: 'data/replace', data: next }),
+      markExported: () => act({ type: 'backup/exported', at: new Date().toISOString() }),
+      eraseAll,
+      readRawArchive: () => adapter.readRaw(),
       findIssue,
       issueForEntry,
     };
-  }, [data, issues, streak, now, loadStatus, saveStatus, deleteEntry, findIssue, issueForEntry]);
+  }, [boot, data, issues, streak, saveStatus, adapter, act, deleteEntry, eraseAll, findIssue, issueForEntry]);
 
+  // False positive: the store's callbacks read refs only when invoked (in event handlers), never during render.
+  // oxlint-disable-next-line react/refs
+  if (!store) return <>{fallback}</>;
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }
 

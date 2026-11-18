@@ -34,9 +34,8 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 export function layoutIssue(issue: Issue): Page[] {
   if (issue.entries.length === 0) return [{ kind: 'cover' }, { kind: 'back' }];
 
-  const stories = issue.entries.filter((e): e is StoryEntry => e.kind === 'story');
   const coverId = issue.coverStory?.id;
-  stories.sort((a, b) => Number(b.id === coverId) - Number(a.id === coverId));
+  const stories = issue.entries.filter((e): e is StoryEntry => e.kind === 'story').toSorted((a, b) => Number(b.id === coverId) - Number(a.id === coverId));
   const notes = issue.entries.filter((e): e is NoteEntry => e.kind === 'note');
   const lists = issue.entries.filter((e): e is ListEntry => e.kind === 'list');
   const quotes = issue.entries.filter((e): e is QuoteEntry => e.kind === 'quote');

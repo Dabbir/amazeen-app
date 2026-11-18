@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <header className={styles.topbar}>
         <div className={styles.topInner}>
-          <Link to={paths.desk()} className={styles.brand} aria-label="AMAZEEN, go to the desk">
+          <Link to={paths.desk()} className={styles.brand}>
             <span className={styles.brandMark} aria-hidden="true">
               A
             </span>

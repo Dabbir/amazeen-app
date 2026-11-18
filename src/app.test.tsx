@@ -1,13 +1,16 @@
+import { StrictMode } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
 import { createEntry } from './domain/entries';
 import { sampleEntries } from './domain/sample';
-import { STORAGE_KEY } from './domain/storage';
+import { createMemoryAdapter, DRAFT_KEY, STORAGE_KEY } from './domain/storage';
 import type { AppData } from './domain/types';
 import { matchRoute } from './router/router';
+import { NowProvider } from './state/now';
 import { reducer } from './state/reducer';
+import { StoreProvider, useStore } from './state/store';
 
 function seed(data: Partial<AppData> = {}): void {
   const full: AppData = {
@@ -68,7 +71,7 @@ describe('app flows', () => {
   it('onboards: validates the name, then creates the magazine', async () => {
     const user = userEvent.setup();
     renderAt('/');
-    await user.click(screen.getByRole('button', { name: 'Start with blank pages' }));
+    await user.click(await screen.findByRole('button', { name: 'Start with blank pages' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Give your magazine a name');
 
     await user.type(screen.getByLabelText('Name your magazine'), 'Field Notes');
@@ -130,7 +133,7 @@ describe('app flows', () => {
     seed({ entries: sampleEntries() });
     renderAt('/shelf');
 
-    const covers = await screen.findAllByRole('link', { name: /^Issue No\. \d+/ });
+    const covers = await screen.findAllByRole('link', { name: /^No\. \d+/ });
     await user.click(covers[covers.length - 1] as HTMLElement); // oldest issue
     expect(await screen.findByText(/Page 1 of \d+: Cover/, {}, { timeout: 3000 })).toBeInTheDocument();
 
@@ -168,5 +171,95 @@ describe('app flows', () => {
     renderAt('/');
     expect(await screen.findByRole('button', { name: 'Start with blank pages' })).toBeInTheDocument();
     expect(localStorage.getItem(STORAGE_KEY)).toBe('{definitely not json'); // untouched until the user acts
+  });
+});
+
+describe('audit regressions', () => {
+  it('#1 never overwrites unreadable storage on boot, even under StrictMode', async () => {
+    localStorage.setItem(STORAGE_KEY, '{definitely not json');
+    window.history.replaceState(null, '', '/');
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    expect(await screen.findByRole('button', { name: 'Start with blank pages' })).toBeInTheDocument();
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('{definitely not json');
+  });
+
+  it('#2 erase removes the archive, legacy copy and unfinished drafts', async () => {
+    const user = userEvent.setup();
+    seed({ entries: sampleEntries() });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ note: { draft: { kind: 'note', body: 'stale' }, meta: { section: 'life', mood: 3, starred: false }, savedAt: '' } }));
+    renderAt('/settings');
+
+    await user.click(await screen.findByRole('button', { name: /Erase everything/ }));
+    const confirm = screen.getByRole('button', { name: 'Erase permanently' });
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByLabelText(/Type ERASE to confirm/), 'erase');
+    await user.click(confirm);
+
+    expect(await screen.findByRole('button', { name: 'Start with blank pages' })).toBeInTheDocument();
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it('#3 flushes a pending draft when the tab is hidden inside the debounce window', async () => {
+    const user = userEvent.setup();
+    seed();
+    renderAt('/write/note');
+    await user.type(await screen.findByLabelText('Note'), 'Do not lose me');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull(); // still inside the 450ms debounce
+
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+    expect(localStorage.getItem(DRAFT_KEY)).toContain('Do not lose me');
+  });
+
+  it('#4 keeps two tabs in sync instead of letting one overwrite the other', async () => {
+    const adapter = createMemoryAdapter({ version: 1, magazine: null, entries: [], overrides: {} });
+    function Probe({ label }: { label: string }) {
+      const store = useStore();
+      return (
+        <div>
+          <span data-testid={`${label}-count`}>{store.data.entries.length}</span>
+          <button type="button" onClick={() => store.addEntry(createEntry({ kind: 'note', body: `from ${label}` }, { section: 'life', mood: 3, starred: false }))}>
+            add {label}
+          </button>
+        </div>
+      );
+    }
+    const tab = (label: string) => (
+      <NowProvider>
+        <StoreProvider adapter={adapter}>
+          <Probe label={label} />
+        </StoreProvider>
+      </NowProvider>
+    );
+    render(
+      <>
+        {tab('a')}
+        {tab('b')}
+      </>,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'add a' }));
+    await waitFor(() => expect(screen.getByTestId('b-count')).toHaveTextContent('1'));
+    await user.click(screen.getByRole('button', { name: 'add b' }));
+    await waitFor(() => expect(screen.getByTestId('a-count')).toHaveTextContent('2'));
+    expect((await adapter.load()).data.entries).toHaveLength(2);
+  });
+
+  it('#6 single-letter shortcuts work with Caps Lock on', async () => {
+    const user = userEvent.setup();
+    seed();
+    renderAt('/');
+    await screen.findByRole('heading', { name: /Issue No\.\s1/ });
+    await user.keyboard('N');
+    expect(await screen.findByLabelText('Note')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/write/note');
   });
 });

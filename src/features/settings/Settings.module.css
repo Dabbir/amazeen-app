@@ -83,6 +83,10 @@
   border-bottom: 1px solid var(--hairline);
 }
 
+.action > button {
+  flex-shrink: 0;
+}
+
 .action h3 {
   font-size: 1.2rem;
   font-weight: 650;
@@ -134,4 +138,60 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+.status {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+
+.summary {
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+.summary div {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+}
+
+.summary dt {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.installBody {
+  align-self: center;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: grid;
+  gap: 6px;
+}
+
+.version {
+  padding-top: 28px;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--ink-3);
 }
