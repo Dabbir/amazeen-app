@@ -83,6 +83,10 @@
   border-bottom: 1px solid var(--hairline);
 }
 
+.action > button {
+  flex-shrink: 0;
+}
+
 .action h3 {
   font-size: 1.2rem;
   font-weight: 650;

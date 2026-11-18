@@ -23,6 +23,9 @@
   transition: transform 160ms var(--ease-out), background-color 160ms, color 160ms, box-shadow 160ms;
   -webkit-tap-highlight-color: transparent;
 }
+.btn > svg {
+  flex-shrink: 0;
+}
 .btn:hover {
   box-shadow: 3px 3px 0 var(--btn-border);
   transform: translate(-1px, -1px);

@@ -1076,6 +1076,7 @@
   .printPage .backSheet {
     padding: 0.4in;
     min-height: 9.5in;
+    background: var(--c-bg);
   }
   .coverPage {
     height: auto;
