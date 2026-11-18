@@ -82,11 +82,18 @@ export interface IssueOverride {
 }
 
 export interface AppData {
-  readonly version: 1;
+  readonly version: 2;
   readonly magazine: Magazine | null;
   readonly entries: readonly Entry[];
+  /**
+   * Entries that were deleted, id → deletion time (ISO). Needed so a deletion made on one device
+   * is not undone by another device that still has the entry when they sync.
+   */
+  readonly tombstones: Readonly<Record<string, string>>;
   /** Per-issue cover customisation, keyed by week key (e.g. `2026-W47`). */
   readonly overrides: Readonly<Record<string, IssueOverride>>;
+  /** When the masthead or any cover override last changed (newest wins when syncing). */
+  readonly metaUpdatedAt?: string;
   /** When the archive was last exported (drives the backup reminder). */
   readonly lastExportedAt?: string;
 }

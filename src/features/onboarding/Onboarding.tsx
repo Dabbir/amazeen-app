@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { CoverArt } from '../../components/CoverArt';
 import { Monogram } from '../../components/Logo';
+import { JoinDialog } from '../sync/JoinDialog';
 import ui from '../../components/ui.module.css';
 import { LIMITS } from '../../domain/entries';
 import { compileIssues } from '../../domain/issues';
@@ -19,6 +20,7 @@ export function Onboarding() {
   const [title, setTitle] = useState('');
   const [editor, setEditor] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
   const [year] = useState(() => new Date().getFullYear());
   const titleId = useId();
   const editorId = useId();
@@ -45,10 +47,12 @@ export function Onboarding() {
       return;
     }
     replaceData({
-      version: 1,
+      version: 2,
       magazine: { title: clean, editor: editor.trim() || 'The Editor', createdAt: new Date().toISOString() },
       entries: withSample ? sampleEntries() : [],
+      tombstones: {},
       overrides: {},
+      metaUpdatedAt: new Date().toISOString(),
     });
   };
 
@@ -142,6 +146,9 @@ export function Onboarding() {
                 Explore a sample archive
               </button>
             </div>
+            <button type="button" className={styles.restore} onClick={() => setRestoring(true)}>
+              Already have a journal? Restore it with your sync key
+            </button>
             <p className={styles.privacy}>
               Everything stays in this browser. No account, no tracking, no cloud. <Link to={paths.privacy()}>Privacy</Link>
             </p>
@@ -156,6 +163,7 @@ export function Onboarding() {
           <p className={styles.caption}>Issue zero. Your masthead, on every cover from now on.</p>
         </aside>
       </div>
+      <JoinDialog open={restoring} onClose={() => setRestoring(false)} />
     </main>
   );
 }

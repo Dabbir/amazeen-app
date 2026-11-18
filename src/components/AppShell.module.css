@@ -162,6 +162,10 @@
   content: attr(data-text);
 }
 
+.spineSync {
+  margin-bottom: 4px;
+}
+
 .spineToggle {
   margin-bottom: 22px;
 }
@@ -281,6 +285,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .topSync {
+    margin-left: auto;
+  }
+
+  .topSync + .topToggle {
+    margin-left: 0;
   }
 
   .topToggle {

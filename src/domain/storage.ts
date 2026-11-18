@@ -9,9 +9,9 @@ export const DRAFT_KEY = 'amazeen:draft:v1';
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const MAX_ENTRIES = 20_000;
 
-export const EMPTY_DATA: AppData = { version: 1, magazine: null, entries: [], overrides: {} };
+export const EMPTY_DATA: AppData = { version: 2, magazine: null, entries: [], tombstones: {}, overrides: {} };
 
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 /**
  * Upgrade older archive shapes to the current version, one step at a time.
@@ -22,7 +22,10 @@ export function migrate(input: unknown): unknown {
   let doc = input as Record<string, unknown>;
   for (let guard = 0; guard < 100 && typeof doc.version === 'number' && doc.version < CURRENT_VERSION; guard++) {
     switch (doc.version) {
-      // case 1: doc = { ...doc, version: 2, /* transform */ }; break;
+      case 1:
+        // v2 adds tombstones (deletions that sync can propagate). Nothing deleted yet in a v1 archive.
+        doc = { ...doc, version: 2, tombstones: {} };
+        break;
       default:
         return doc; // unknown older version: let validation report it
     }
@@ -65,11 +68,30 @@ function parseOverrides(value: unknown): Record<string, IssueOverride> {
 }
 
 /** Validate untrusted data (from storage or an import file). Throws DataFormatError if unusable. */
+function isIso(value: unknown): value is string {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+}
+
+const MAX_TOMBSTONES = 50_000;
+
+/** Tombstones with a valid id and time. A live entry newer than its tombstone supersedes it. */
+function parseTombstones(value: unknown, liveIds: ReadonlySet<string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (typeof value !== 'object' || value === null) return out;
+  let count = 0;
+  for (const [id, at] of Object.entries(value as Record<string, unknown>)) {
+    if (id.length === 0 || id.length > 64 || !isIso(at) || liveIds.has(id)) continue;
+    out[id] = new Date(at).toISOString();
+    if (++count >= MAX_TOMBSTONES) break;
+  }
+  return out;
+}
+
 export function parseAppData(input: unknown): ParseResult {
   const value = migrate(input);
   if (typeof value !== 'object' || value === null) throw new DataFormatError('This file is not an AMAZEEN archive.');
   const v = value as Record<string, unknown>;
-  if (v.version !== 1) throw new DataFormatError('This archive was made by an unsupported version of AMAZEEN.');
+  if (v.version !== CURRENT_VERSION) throw new DataFormatError('This archive was made by an unsupported version of AMAZEEN.');
   if (!Array.isArray(v.entries)) throw new DataFormatError('The archive has no entries list.');
   if (v.entries.length > MAX_ENTRIES) throw new DataFormatError('The archive is too large to open.');
 
@@ -85,13 +107,16 @@ export function parseAppData(input: unknown): ParseResult {
     seen.add(entry.id);
     entries.push(entry);
   }
+  const metaUpdatedAt = isIso(v.metaUpdatedAt) ? v.metaUpdatedAt : null;
   const lastExportedAt = typeof v.lastExportedAt === 'string' && !Number.isNaN(Date.parse(v.lastExportedAt)) ? v.lastExportedAt : null;
   return {
     data: {
-      version: 1,
+      version: 2,
       magazine: parseMagazine(v.magazine),
       entries,
+      tombstones: parseTombstones(v.tombstones, seen),
       overrides: parseOverrides(v.overrides),
+      ...(metaUpdatedAt ? { metaUpdatedAt } : {}),
       ...(lastExportedAt ? { lastExportedAt } : {}),
     },
     skipped,

@@ -10,6 +10,7 @@ import { NotFound } from './features/NotFound';
 import { RouterProvider, useRouter } from './router/router';
 import { NowProvider } from './state/now';
 import { StoreProvider, useStore } from './state/store';
+import { SyncProvider } from './sync/SyncProvider';
 import type { StorageAdapter } from './domain/storage';
 
 // Secondary screens are split out so the desk paints fast.
@@ -53,14 +54,16 @@ export function App({ adapter }: { adapter?: StorageAdapter }) {
     <ErrorBoundary>
       <NowProvider>
         <StoreProvider fallback={<PressLoader label="Opening the archive…" />} {...(adapter ? { adapter } : {})}>
-          <RouterProvider>
-            <ToastProvider>
-              {import.meta.env.PROD && <UpdatePrompt />}
-              <Suspense fallback={<PressLoader />}>
-                <Screens />
-              </Suspense>
-            </ToastProvider>
-          </RouterProvider>
+          <SyncProvider>
+            <RouterProvider>
+              <ToastProvider>
+                {import.meta.env.PROD && <UpdatePrompt />}
+                <Suspense fallback={<PressLoader />}>
+                  <Screens />
+                </Suspense>
+              </ToastProvider>
+            </RouterProvider>
+          </SyncProvider>
         </StoreProvider>
       </NowProvider>
     </ErrorBoundary>

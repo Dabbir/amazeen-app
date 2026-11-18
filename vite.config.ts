@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
+  build: {
+    // Never inline fonts as data: URIs: the CSP (font-src 'self') would block them. Everything else keeps Vite's default.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -47,6 +51,8 @@ export default defineConfig({
           },
         ],
         navigateFallback: '/index.html',
+        // The sync API is never an app page: don't answer /api/* navigations with the app shell.
+        navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
       },
     }),

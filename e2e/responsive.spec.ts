@@ -4,7 +4,7 @@ import { onboard } from './helpers';
 
 /**
  * Responsive guard: every main screen, at phone through desktop widths, must not scroll sideways,
- * must not set readable text below 11px, and must give controls at least a 24×24px target
+ * must not let text spill out of its own box, must not set readable text below 11px, and must give controls at least a 24×24px target
  * (WCAG 2.2 AA 2.5.8). Decorative thumbnails (aria-hidden covers) and screen-reader-only text are
  * excluded. Runs once, in the desktop project, with explicit viewports.
  */
@@ -13,6 +13,7 @@ const WIDTHS = [320, 375, 768, 1024, 1440];
 interface Findings {
   docOverflow: number;
   overflow: string[];
+  spills: string[];
   smallText: string[];
   smallTargets: string[];
 }
@@ -33,13 +34,20 @@ async function audit(page: Page): Promise<Findings> {
       return false;
     };
     const label = (el: Element) => `${el.tagName.toLowerCase()} "${((el as HTMLElement).innerText || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`;
-    const f = { docOverflow: document.documentElement.scrollWidth - vw, overflow: [] as string[], smallText: [] as string[], smallTargets: [] as string[] };
+    const f = { docOverflow: document.documentElement.scrollWidth - vw, overflow: [] as string[], spills: [] as string[], smallText: [] as string[], smallTargets: [] as string[] };
     for (const el of document.querySelectorAll('body *')) {
       if (!shown(el) || skip(el)) continue;
       const r = el.getBoundingClientRect();
       if ((r.right > vw + 1 || r.left < -1) && !inScroller(el)) f.overflow.push(label(el));
-      if ([...el.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim()) && parseFloat(getComputedStyle(el).fontSize) < 11) {
+      const hasText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim());
+      if (hasText && parseFloat(getComputedStyle(el).fontSize) < 11) {
         f.smallText.push(`${label(el)} ${getComputedStyle(el).fontSize}`);
+      }
+      // Text that spills out of its own box (e.g. a label wider than its grid column, running
+      // into its neighbour), unless the box deliberately truncates with an ellipsis or scrolls.
+      const cs = getComputedStyle(el);
+      if (hasText && cs.display !== 'inline' && el.scrollWidth > el.clientWidth + 2 && cs.textOverflow !== 'ellipsis' && !['auto', 'scroll'].includes(cs.overflowX) && !el.matches('input, textarea, select')) {
+        f.spills.push(`${label(el)} ${el.scrollWidth}>${el.clientWidth}`);
       }
       const control = el.matches('a[href], button, input:not([type=hidden]):not([type=radio]):not([type=checkbox]), select, textarea, [role=switch]');
       const inlineLink = el.matches('a') && getComputedStyle(el).display === 'inline' && el.closest('p');
@@ -65,8 +73,35 @@ test.describe('responsive & readable', () => {
         await page.goto(route);
         await page.waitForTimeout(250);
         const f = await audit(page);
-        expect.soft(f, `${route} at ${width}px`).toEqual({ docOverflow: 0, overflow: [], smallText: [], smallTargets: [] });
+        expect.soft(f, `${route} at ${width}px`).toEqual({ docOverflow: 0, overflow: [], spills: [], smallText: [], smallTargets: [] });
       }
+    });
+  }
+});
+
+const CLEAN = { docOverflow: 0, overflow: [], smallText: [], smallTargets: [] };
+const pick = (f: Awaited<ReturnType<typeof audit>>) => ({ docOverflow: f.docOverflow, overflow: f.overflow, smallText: f.smallText, smallTargets: f.smallTargets });
+
+test.describe('sync dialogs stay readable at every width', () => {
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
+  for (const width of WIDTHS) {
+    test(`join and key dialogs at ${width}px`, async ({ page }, info) => {
+      test.skip(info.project.name !== 'desktop-chrome', 'viewports are set explicitly; one project is enough');
+      await page.setViewportSize({ width, height: width < 800 ? 780 : 900 });
+      await onboard(page, { sample: true, title: 'The Sunday Correspondent' });
+      await page.goto('/settings');
+
+      await page.getByRole('button', { name: 'Connect to your journal' }).click();
+      await page.getByRole('dialog').waitFor();
+      await page.getByLabel('Sync key').fill('ABCD-EFGH-IJKL');
+      await page.getByRole('button', { name: 'Connect', exact: true }).click();
+      await page.getByRole('alert').waitFor();
+      expect.soft(pick(await audit(page)), `join dialog at ${width}px`).toEqual(CLEAN);
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: 'Turn on sync' }).click();
+      await page.getByTestId('sync-key').waitFor();
+      expect.soft(pick(await audit(page)), `key dialog at ${width}px`).toEqual(CLEAN);
     });
   }
 });
